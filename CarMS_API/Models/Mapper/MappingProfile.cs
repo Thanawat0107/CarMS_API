@@ -10,6 +10,7 @@ namespace CarMS_API.Models.Mapper
             CreateMap<Car, CarDto>().ReverseMap();
             CreateMap<Brand, BrandDto>().ReverseMap();
             CreateMap<Seller, SellerDto>().ReverseMap();
+            CreateMap<CarHistory, CarHistoryDto>().ReverseMap();
         }
     }
 }

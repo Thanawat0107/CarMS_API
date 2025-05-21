@@ -4,6 +4,7 @@
     {
         public int Id { get; set; }
         public string? Name { get; set; }
+        public IFormFile? ImageFile { get; set; }
         public string? ImageUrl { get; set; }
         public bool IsUsed { get; set; }
         public bool IsDelete { get; set; }

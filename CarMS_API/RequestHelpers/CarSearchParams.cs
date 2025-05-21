@@ -22,10 +22,15 @@ namespace CarMS_API.RequestHelpers
         public CarType? CarType { get; set; }
 
         public bool? IsUsed { get; set; }
+        public bool? IsApproved { get; set; }
         public Status? Status { get; set; }
 
         public int? SellerId { get; set; }
         public int? BrandId { get; set; }
+
+        public string? CarRegistrationNumber { get; set; }
+        public string? CarIdentificationNumber { get; set; }
+        public string? EngineNumber { get; set; }
 
         public string? SortBy { get; set; } = "id";
 

@@ -12,7 +12,9 @@ namespace CarMS_API.Repositorys
         {
             return c =>
                 !c.IsDeleted &&
-                (string.IsNullOrEmpty(p.SearchTerm) || c.Model.Contains(p.SearchTerm) || c.Description.Contains(p.SearchTerm)) &&
+                (string.IsNullOrEmpty(p.SearchTerm) ||
+                    c.Model.Contains(p.SearchTerm) ||
+                    c.Description.Contains(p.SearchTerm)) &&
                 (!p.MinPrice.HasValue || c.Price >= p.MinPrice) &&
                 (!p.MaxPrice.HasValue || c.Price <= p.MaxPrice) &&
                 (!p.MinYear.HasValue || c.Year >= p.MinYear) &&
@@ -26,7 +28,11 @@ namespace CarMS_API.Repositorys
                 (!p.IsUsed.HasValue || c.IsUsed == p.IsUsed) &&
                 (!p.Status.HasValue || c.Status == p.Status) &&
                 (!p.SellerId.HasValue || c.SellerId == p.SellerId) &&
-                (!p.BrandId.HasValue || c.BrandId == p.BrandId);
+                (!p.BrandId.HasValue || c.BrandId == p.BrandId) &&
+                (!p.IsApproved.HasValue || c.IsApproved == p.IsApproved) &&
+                (string.IsNullOrEmpty(p.CarRegistrationNumber) || c.CarRegistrationNumber.Contains(p.CarRegistrationNumber)) &&
+                (string.IsNullOrEmpty(p.CarIdentificationNumber) || c.CarIdentificationNumber.Contains(p.CarIdentificationNumber)) &&
+                (string.IsNullOrEmpty(p.EngineNumber) || c.EngineNumber.Contains(p.EngineNumber));
         }
 
         public Func<IQueryable<Car>, IOrderedQueryable<Car>> BuildSort(string? sortBy)
@@ -38,9 +44,12 @@ namespace CarMS_API.Repositorys
                 "year" => q => q.OrderByDescending(c => c.Year),
                 "createdat" => q => q.OrderByDescending(c => c.CreatedAt),
                 "updatedat" => q => q.OrderByDescending(c => c.UpdatedAt),
+                "isapproved" => q => q.OrderBy(c => c.IsApproved),
+                "carregistrationnumber" => q => q.OrderBy(c => c.CarRegistrationNumber),
                 _ => q => q.OrderBy(c => c.Id)
             };
         }
+
 
         public Func<IQueryable<Car>, IQueryable<Car>> Include()
         {
@@ -48,5 +57,4 @@ namespace CarMS_API.Repositorys
                          .Include(c => c.Seller);
         }
     }
-
 }

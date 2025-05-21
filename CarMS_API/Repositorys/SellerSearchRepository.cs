@@ -11,7 +11,7 @@ namespace CarMS_API.Repositorys
         {
             return s =>
                 (string.IsNullOrEmpty(p.UserId) || s.UserId.Contains(p.UserId)) &&
-                (!p.IdentityNumber.HasValue || s.IdentityNumber == p.IdentityNumber) &&
+                (string.IsNullOrEmpty(p.IdentityNumber) || s.IdentityNumber.Contains(p.IdentityNumber)) &&
                 (string.IsNullOrEmpty(p.Address) || s.Address.Contains(p.Address)) &&
                 (!p.IsVerified.HasValue || s.IsVerified == p.IsVerified);
         }

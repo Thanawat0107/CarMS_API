@@ -66,7 +66,7 @@ namespace CarMS_API.Controllers
         public async Task<IActionResult> Create(SellerDto sellerDto)
         {
             var seller = _mapper.Map<Seller>(sellerDto);
-            seller.IsVerified = false;
+            seller.IsVerified = true;
 
             var created = await _sellerRepo.AddAsync(seller);
             var result = _mapper.Map<SellerDto>(seller);

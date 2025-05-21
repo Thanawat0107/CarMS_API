@@ -5,7 +5,7 @@
 namespace CarMS_API.Migrations
 {
     /// <inheritdoc />
-    public partial class addCarHistory : Migration
+    public partial class updateCarModel : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

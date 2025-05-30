@@ -5,7 +5,7 @@ namespace CarMS_API.Repositorys.IRepositorys
 {
     public interface IAuthRepository
     {
-        public Task<ApiResponse<object>> RegisterAsync(RegisterDto model);
-        public Task<ApiResponse<LoginResponse>> LoginAsync(LoginDto model);
+        public Task<RegisterResponse> RegisterAsync(RegisterDto model);
+        public Task<LoginResponse> LoginAsync(LoginDto model);
     }
 }

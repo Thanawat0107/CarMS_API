@@ -2,6 +2,7 @@
 using CarMS_API.Models;
 using CarMS_API.Models.Dto;
 using CarMS_API.Models.Dto.CreateDto;
+using CarMS_API.Models.Dto.UpdaeteDto;
 using CarMS_API.Models.Responsts;
 using CarMS_API.Repositorys.IRepositorys;
 using CarMS_API.RequestHelpers;
@@ -33,7 +34,7 @@ namespace CarMS_API.Controllers
             _fileUpload = fileUpload;
         }
 
-        [HttpGet]
+        [HttpGet("getall")]
         public async Task<IActionResult> GetAll([FromQuery] CarSearchParams searchParams)
         {
             var filter = _searchRepo.BuildFilter(searchParams);
@@ -59,17 +60,20 @@ namespace CarMS_API.Controllers
             return Ok(ApiResponse<IEnumerable<CarDto>>.Success(result, "โหลดรายการรถเรียบร้อย", pagination));
         }
 
-        [HttpGet("{carId}")]
+        [HttpGet("getbyid/{carId}")]
         public async Task<IActionResult> GetById(int carId)
         {
-            var car = await _carRepo.GetByIdAsync(carId);
+            var car = await _carRepo.GetByIdAsync(carId, 
+                q=>q.Include(q=>q.Seller)
+                .Include(q=>q.Brand));
+
             if (car == null) return NotFound(ApiResponse<string>.Fail("ไม่พบรถที่คุณค้นหา"));
             var result = _mapper.Map<CarDto>(car);
 
             return Ok(ApiResponse<CarDto>.Success(result, "สำเร็จ"));
         }
 
-        [HttpPost]
+        [HttpPost("create")]
         public async Task<IActionResult> Create([FromForm] CarCreateDto carDto)
         {
             var car = _mapper.Map<Car>(carDto);
@@ -90,12 +94,11 @@ namespace CarMS_API.Controllers
             return Ok(ApiResponse<CarCreateDto>.Success(result, "สำเร็จ"));
         }
 
-        [HttpPut("{carId}")]
-        public async Task<IActionResult> Update([FromForm] CarCreateDto carDto)
+        [HttpPut("update/{carId}")]
+        public async Task<IActionResult> Update([FromForm] CarUpdateDto carDto, int carId)
         {
-            var car = await _carRepo.GetByIdAsync(carDto.Id);
+            var car = await _carRepo.GetByIdAsync(carId);
             if (car == null) return NotFound(ApiResponse<string>.Fail("ไม่พบรถที่คุณต้องการแก้ไข"));
-
             _mapper.Map(carDto, car);
             car.UpdatedAt = DateTime.UtcNow;
 
@@ -110,15 +113,14 @@ namespace CarMS_API.Controllers
             }
 
             await _carRepo.UpdateAsync(car);
-
             var result = _mapper.Map<CarCreateDto>(car);
             return Ok(ApiResponse<CarCreateDto>.Success(result, "อัปเดตรถเรียบร้อย"));
         }
 
-        [HttpPut("{Id}")]
-        public async Task<IActionResult> Delete(int Id)
+        [HttpPut("delete/{carId}")]
+        public async Task<IActionResult> Delete(int carId)
         {
-            var car = await _carRepo.GetByIdAsync(Id);
+            var car = await _carRepo.GetByIdAsync(carId);
             if (car == null) return NotFound(ApiResponse<string>.Fail("ไม่พบรถที่คุณต้องการลบ"));
 
             // ลบไฟล์ภาพก่อนลบสินค้า

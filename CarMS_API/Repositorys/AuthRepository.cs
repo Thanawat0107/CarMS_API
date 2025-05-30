@@ -35,19 +35,19 @@ namespace CarMS_API.Repositorys
             _roleSeeder = roleSeeder;
         }
 
-        public async Task<ApiResponse<object>> RegisterAsync(RegisterDto model)
+        public async Task<RegisterResponse> RegisterAsync(RegisterDto model)
         {
             var existingUser = await _db.ApplicationUsers
                 .FirstOrDefaultAsync(u => u.UserName.ToLower() == model.UserName.ToLower());
 
             if (existingUser != null)
-                return ApiResponse<object>.Fail("ชื่อผู้ใช้นี้มีอยู่แล้ว");
+                throw new Exception("ชื่อผู้ใช้นี้มีอยู่แล้ว");
 
             var existingEmail = await _db.ApplicationUsers
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == model.Email.ToLower());
 
             if (existingEmail != null)
-                return ApiResponse<object>.Fail("อีเมลนี้ถูกใช้งานแล้ว");
+                throw new Exception("อีเมลนี้ถูกใช้งานแล้ว");
 
             var newUser = new ApplicationUser
             {
@@ -62,7 +62,7 @@ namespace CarMS_API.Repositorys
             {
                 var result = await _userManager.CreateAsync(newUser, model.Password);
                 if (!result.Succeeded)
-                    return ApiResponse<object>.Fail(string.Join("; ", result.Errors.Select(e => e.Description)));
+                    throw new Exception(string.Join("; ", result.Errors.Select(e => e.Description)));
 
                 await _roleSeeder.SeedRolesAsync();
 
@@ -76,28 +76,28 @@ namespace CarMS_API.Repositorys
 
                 await _userManager.AddToRoleAsync(newUser, selectedRole);
 
-                return ApiResponse<object>.Success(new
+                return new RegisterResponse
                 {
-                    userName = newUser.UserName,
-                    email = newUser.Email,
-                    fullName = newUser.FullName,
-                    phoneNumber = newUser.PhoneNumber,
-                    role = selectedRole
-                }, "สมัครสมาชิกสำเร็จ");
+                    UserName = newUser.UserName,
+                    Email = newUser.Email,
+                    FullName = newUser.FullName,
+                    PhoneNumber = newUser.PhoneNumber,
+                    Role = selectedRole
+                };
             }
             catch (Exception ex)
             {
-                return ApiResponse<object>.Fail("เกิดข้อผิดพลาดในการสมัครสมาชิก: " + ex.Message);
+                throw new Exception("เกิดข้อผิดพลาดในการสมัครสมาชิก: " + ex.Message);
             }
         }
 
-        public async Task<ApiResponse<LoginResponse>> LoginAsync(LoginDto model)
+        public async Task<LoginResponse> LoginAsync(LoginDto model)
         {
             var user = await _db.ApplicationUsers
                 .FirstOrDefaultAsync(u => u.UserName.ToLower() == model.UserName.ToLower());
 
             if (user == null || !await _userManager.CheckPasswordAsync(user, model.Password))
-                return ApiResponse<LoginResponse>.Fail("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
+                throw new Exception("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
 
             var roles = await _userManager.GetRolesAsync(user);
             var key = Encoding.ASCII.GetBytes(_config["ApiSettings:Secret"]);
@@ -106,10 +106,11 @@ namespace CarMS_API.Repositorys
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-                new Claim("fullName", user.FullName ?? user.UserName),
-                new Claim("id", user.Id),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, roles.FirstOrDefault() ?? SD.Role_Buyer)
+                    new Claim("userName", user.UserName),
+                    new Claim("fullName", user.FullName),
+                    new Claim("id", user.Id),
+                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim(ClaimTypes.Role, roles.FirstOrDefault() ?? SD.Role_Buyer)
             }),
                 Expires = DateTime.UtcNow.AddHours(3),
                 SigningCredentials = new SigningCredentials(
@@ -121,15 +122,11 @@ namespace CarMS_API.Repositorys
             var tokenHandler = new JwtSecurityTokenHandler();
             var token = tokenHandler.CreateToken(tokenDescriptor);
 
-            var response = new LoginResponse
+            return new LoginResponse
             {
                 Email = user.Email,
                 Token = tokenHandler.WriteToken(token)
             };
-
-            return ApiResponse<LoginResponse>.Success(response, "เข้าสู่ระบบสำเร็จ");
         }
     }
-
-
 }

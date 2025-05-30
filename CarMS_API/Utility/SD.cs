@@ -9,6 +9,7 @@
         public const string ImgPath = "/images";
         public const string ImgProductPath = "products";
         public const string ImgBrandPath = "brands";
+
         public const string ImgPaymentPath = "payments";
     }
 }

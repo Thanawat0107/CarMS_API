@@ -2,6 +2,8 @@
 using CarMS_API.Data;
 using CarMS_API.Models;
 using CarMS_API.Models.Dto;
+using CarMS_API.Models.Dto.CreateDto;
+using CarMS_API.Models.Dto.UpdaeteDto;
 using CarMS_API.Models.Dto.ViewModelDto;
 using CarMS_API.Models.Responsts;
 using CarMS_API.Repositorys.IRepositorys;
@@ -32,7 +34,7 @@ namespace CarMS_API.Controllers
             _fileUpload = fileUpload;
         }
 
-        [HttpGet]
+        [HttpGet("getall")]
         public async Task<IActionResult> GetAll([FromQuery] BrandSearchParams searchParams)
         {
             var filter = _searchRepo.BuildFilter(searchParams);
@@ -58,7 +60,7 @@ namespace CarMS_API.Controllers
             return Ok(ApiResponse<IEnumerable<BrandDto>>.Success(result, "โหลดรายการแบรนด์สำเร็จ", pagination));
         }
 
-        [HttpGet("{brandId}")]
+        [HttpGet("getbyid/{brandId}")]
         public async Task<IActionResult> GetById(int brandId)
         {
             var brand = await _brandRepo.GetByIdAsync(brandId);
@@ -68,11 +70,10 @@ namespace CarMS_API.Controllers
             return Ok(ApiResponse<BrandDto>.Success(result, "สำเร็จ"));
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromForm] BrandDto brandDto)
+        [HttpPost("create")]
+        public async Task<IActionResult> Create([FromForm] BrandCreateDto brandDto)
         {
             var brand = _mapper.Map<Brand>(brandDto);
-            brand.IsUsed = false;
             brand.IsDelete = false;
             
             // อัปโหลดภาพ
@@ -87,12 +88,11 @@ namespace CarMS_API.Controllers
             return Ok(ApiResponse<BrandDto>.Success(result, "สำเร็จ"));
         }
 
-        [HttpPut("{brandId}")]
-        public async Task<IActionResult> Update([FromForm] BrandDto brandDto)
+        [HttpPut("update/{brandId}")]
+        public async Task<IActionResult> Update([FromForm] BrandUpdateDto brandDto, int brandId)
         {
-            var brand = await _brandRepo.GetByIdAsync(brandDto.Id);
+            var brand = await _brandRepo.GetByIdAsync(brandId);
             if (brand == null) return NotFound(ApiResponse<string>.Fail("ไม่พบแบรนด์ที่คุณต้องการแก้ไข"));
-
             _mapper.Map(brandDto, brand);
             
             // อัปเดตภาพ
@@ -106,16 +106,15 @@ namespace CarMS_API.Controllers
             }
 
             await _brandRepo.UpdateAsync(brand);
-
             var result = _mapper.Map<BrandDto>(brand);
             return Ok(ApiResponse<BrandDto>.Success(result, "อัปเดตแบรนด์เรียบร้อย"));
         }
 
-        [HttpPut("{Id}")]
-        public async Task<IActionResult> Delete(int Id)
+        [HttpPut("delete/{brandId}")]
+        public async Task<IActionResult> Delete(int brandId)
         {
-            var brand = await _brandRepo.GetByIdAsync(Id);
-            if (brand == null) return NotFound(ApiResponse<string>.Fail($"ไม่พบแบรนด์ ID: {Id}"));
+            var brand = await _brandRepo.GetByIdAsync(brandId);
+            if (brand == null) return NotFound(ApiResponse<string>.Fail($"ไม่พบแบรนด์ ID: {brandId}"));
 
             // ลบไฟล์ภาพก่อนลบสินค้า
             if (!string.IsNullOrEmpty(brand.ImageUrl))

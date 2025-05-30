@@ -15,6 +15,7 @@ namespace CarMS_API.Repositorys.IRepositorys
             int id,
             Func<IQueryable<T>, IQueryable<T>>? include = null
         );
+        public Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate);
         public Task<T> AddAsync(T entity);
         public Task<T> UpdateAsync(T entity);
         public Task<T> DeleteAsync(int id);

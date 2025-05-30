@@ -16,5 +16,7 @@ namespace CarMS_API.Data
         public DbSet<ApplicationUser> ApplicationUsers { get; set; }
         public DbSet<Approval> Approvals { get; set; }
         public DbSet<TestDrive> TestDrives { get; set; }
+        public DbSet<Reservation> Reservations { get; set; }
+        public DbSet<Payment> Payments { get; set; }
     }
 }

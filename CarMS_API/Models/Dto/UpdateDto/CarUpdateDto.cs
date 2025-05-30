@@ -1,6 +1,6 @@
-﻿namespace CarMS_API.Models.Dto.CreateDto
+﻿namespace CarMS_API.Models.Dto.UpdaeteDto
 {
-    public class CarCreateDto
+    public class CarUpdateDto
     {
         public int? SellerId { get; set; }
         public int? BrandId { get; set; }
@@ -20,7 +20,9 @@
 
         public string? Description { get; set; }
         public IFormFile? ImageFile { get; set; }
-        public DateTime? CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
         public Status Status { get; set; }
+        public bool IsUsed { get; set; }
+        public bool IsDeleted { get; set; }
     }
 }

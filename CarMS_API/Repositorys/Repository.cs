@@ -45,6 +45,11 @@ namespace CarMS_API.Repositorys
             return (result, totalCount);
         }
 
+        public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate)
+        {
+            return await _dbSet.FirstOrDefaultAsync(predicate);
+        }
+
         public async Task<T> GetByIdAsync(
             int id,
             Func<IQueryable<T>, IQueryable<T>>? include = null)

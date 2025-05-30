@@ -96,6 +96,8 @@ builder.Services.AddScoped<RoleSeeder>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IFileUpload, FileUpload>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<IReservationService, ReservationService>();
+builder.Services.AddHostedService<ReservationExpiryService>();
 builder.Services.AddScoped<ISearchableRepository<Car, CarSearchParams>, CarSearchRepository>();
 builder.Services.AddScoped<ISearchableRepository<Brand, BrandSearchParams>, BrandSearchRepository>();
 builder.Services.AddScoped<ISearchableRepository<Seller, SellerSearchParams>, SellerSearchRepository>();
@@ -103,6 +105,7 @@ builder.Services.AddScoped<ISearchableRepository<CarHistory, CarHistorySearchPar
 builder.Services.AddScoped<ISearchableRepository<CarMaintenance, CarMaintenanceSearchParams>, CarMaintenanceSearchRepository>();
 builder.Services.AddScoped<ISearchableRepository<Approval, ApprovalSearchParams>, ApprovalSearchRepository>();
 builder.Services.AddScoped<ISearchableRepository<TestDrive, TestDriveSearchParams>, TestDriveSearchRepository>();
+builder.Services.AddScoped<ISearchableRepository<Reservation, ReservationSearchParams>, ReservationSearchRepository>();
 
 // CORS
 builder.Services.AddCors();

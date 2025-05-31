@@ -29,6 +29,7 @@ namespace CarMS_API.Services
             {
                 reservation.Status = ReservationStatus.Expired;
                 reservation.UpdatedAt = now;
+                reservation.ExpiredAt = now;
 
                 if (reservation.Car != null)
                 {

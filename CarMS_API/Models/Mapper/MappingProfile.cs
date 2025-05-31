@@ -40,6 +40,9 @@ namespace CarMS_API.Models.Mapper
 
             CreateMap<Reservation, ReservationDto>().ReverseMap();
             CreateMap<Reservation, ReservationCreateDto>().ReverseMap();
+
+            CreateMap<Payment, PaymentDto>().ReverseMap();
+            CreateMap<Payment, PaymentCreateDto>().ReverseMap();
         }
     }
 }

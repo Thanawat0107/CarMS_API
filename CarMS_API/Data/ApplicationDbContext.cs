@@ -18,5 +18,15 @@ namespace CarMS_API.Data
         public DbSet<TestDrive> TestDrives { get; set; }
         public DbSet<Reservation> Reservations { get; set; }
         public DbSet<Payment> Payments { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Reservation>()
+                .HasIndex(r => new { r.UserId, r.CarId, r.Status })
+                .IsUnique()
+                .HasFilter("[Status] = 0"); // สมมุติว่า 0 = Pending
+        }
     }
 }

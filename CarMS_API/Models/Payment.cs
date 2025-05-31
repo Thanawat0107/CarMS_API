@@ -6,6 +6,8 @@
         public int ReservationId { get; set; }
         public Reservation Reservation { get; set; }
         public DateTime PaidAt {  get; set; } //เวลาชำระ
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
         public double TotalPrice { get; set; } //ยอดเงินที่ชำระ
         public PaymentMethod Method { get; set; } //วิธีจ่ายจริง
         public PaymentStatus Status { get; set; }
@@ -17,14 +19,13 @@
         QR,
         PromptPay,
         CreditCard,
-        Cash,
     }
 
     public enum PaymentStatus
     {
-        pending,
-        paid,
-        failed,
-        refunded,
+        Pending,
+        Paid,
+        Failed,
+        Refunded,
     }
 }

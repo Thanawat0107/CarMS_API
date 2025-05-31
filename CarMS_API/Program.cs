@@ -56,6 +56,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(opt =>
 {
     opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
+builder.Services.Configure<ReservationSettings>(
+    builder.Configuration.GetSection("ReservationSettings"));
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 .AddEntityFrameworkStores<ApplicationDbContext>();
@@ -106,6 +108,7 @@ builder.Services.AddScoped<ISearchableRepository<CarMaintenance, CarMaintenanceS
 builder.Services.AddScoped<ISearchableRepository<Approval, ApprovalSearchParams>, ApprovalSearchRepository>();
 builder.Services.AddScoped<ISearchableRepository<TestDrive, TestDriveSearchParams>, TestDriveSearchRepository>();
 builder.Services.AddScoped<ISearchableRepository<Reservation, ReservationSearchParams>, ReservationSearchRepository>();
+builder.Services.AddScoped<ISearchableRepository<Payment, PaymentSearchParams>, PaymentSearchRepository>();
 
 // CORS
 builder.Services.AddCors();

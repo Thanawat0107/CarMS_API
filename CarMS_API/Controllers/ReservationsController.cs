@@ -18,8 +18,10 @@ namespace ReservationMS_API.Controllers
         private readonly IRepository<Car> _carRepo;
         private readonly ISearchableRepository<Reservation, ReservationSearchParams> _searchRepo;
         private readonly IMapper _mapper;
-        public ReservationsController(IRepository<Reservation> reservationRepo,
-            ISearchableRepository<Reservation, ReservationSearchParams> searchRepo,
+        public ReservationsController(
+            IRepository<Reservation> reservationRepo,
+            ISearchableRepository<Reservation, 
+            ReservationSearchParams> searchRepo,
             IRepository<Car> carRepo,
             IMapper mapper)
         {
@@ -73,8 +75,16 @@ namespace ReservationMS_API.Controllers
         {
             var reservation = _mapper.Map<Reservation>(reservationDto);
             reservation.ReservedAt = DateTime.UtcNow;
-            reservation.ExpiryAt = reservation.ReservedAt.AddDays(1);
+            reservation.ExpiryAt = reservation.ReservedAt.AddHours(24);
             reservation.Status = ReservationStatus.Pending;
+
+            var existing = await _reservationRepo.FirstOrDefaultAsync(r =>
+                r.CarId == reservation.CarId &&
+                r.UserId == reservation.UserId &&
+                r.Status == ReservationStatus.Pending
+            );
+
+            if (existing != null) return BadRequest(ApiResponse<string>.Fail("คุณได้จองรถคันนี้ไว้แล้ว"));
 
             var car = await _carRepo.GetByIdAsync(reservation.CarId);
             if (car == null || car.Status != Status.Available) return BadRequest(ApiResponse<string>.Fail("รถไม่พร้อมให้จอง"));
@@ -88,8 +98,8 @@ namespace ReservationMS_API.Controllers
             return Ok(ApiResponse<ReservationCreateDto>.Success(result, "จองรถสำเร็จ รอการยืนยัน"));
         }
 
-        [HttpPut("update/{reservationId}")]
-        public async Task<IActionResult> Update(ReservationCreateDto reservationDto, int reservationId)
+        [HttpPut("cancel/{reservationId}")]
+        public async Task<IActionResult> Cancel(int reservationId)
         {
             var reservation = await _reservationRepo.GetByIdAsync(reservationId, r => r.Include(r => r.Car));
             if (reservation == null || reservation.Status != ReservationStatus.Pending)
@@ -100,6 +110,8 @@ namespace ReservationMS_API.Controllers
             {
                 reservation.Car.Status = Status.Available;
             }
+
+            reservation.CanceledAt = DateTime.UtcNow;
 
             await _reservationRepo.UpdateAsync(reservation);
             var result = _mapper.Map<ReservationCreateDto>(reservation);

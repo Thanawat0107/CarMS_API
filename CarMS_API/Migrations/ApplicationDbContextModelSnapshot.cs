@@ -224,6 +224,9 @@ namespace CarMS_API.Migrations
                     b.Property<int>("Price")
                         .HasColumnType("int");
 
+                    b.Property<int>("ReservationPrice")
+                        .HasColumnType("int");
+
                     b.Property<int?>("SellerId")
                         .HasColumnType("int");
 

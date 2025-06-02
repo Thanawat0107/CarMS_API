@@ -2,15 +2,13 @@
 using CarMS_API.Models;
 using CarMS_API.Models.Dto;
 using CarMS_API.Models.Dto.CreateDto;
-using CarMS_API.Models.Dto.UpdaeteDto;
 using CarMS_API.Models.Dto.UpdateDto;
 using CarMS_API.Models.Responsts;
 using CarMS_API.Repositorys.IRepositorys;
 using CarMS_API.RequestHelpers;
-using CarMS_API.Utility;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PaymentMethod = CarMS_API.Models.PaymentMethod;
 
 namespace CarMS_API.Controllers
 {
@@ -75,9 +73,14 @@ namespace CarMS_API.Controllers
             return Ok(ApiResponse<PaymentDto>.Success(result, "สำเร็จ"));
         }
 
+        // การจ่ายแบบ Manual (โอนเงิน, QR code, อื่นๆ)
         [HttpPost("create")]
         public async Task<IActionResult> Create([FromBody] PaymentCreateDto paymentDto)
         {
+            var allowedMethods = new[] { PaymentMethod.QR, PaymentMethod.PromptPay };
+            if (!allowedMethods.Contains(paymentDto.Method))
+                return BadRequest(ApiResponse<string>.Fail("ช่องทางการชำระเงินไม่ถูกต้อง"));
+
             // ถ้ามี Payment pending อยู่แล้ว ไม่ต้องให้สร้างซ้ำ
             var pendingPayment = await _paymentRepo.FirstOrDefaultAsync(p =>
                 p.ReservationId == paymentDto.ReservationId &&
@@ -108,6 +111,7 @@ namespace CarMS_API.Controllers
 
             var payment = _mapper.Map<Payment>(paymentDto);
             payment.CreatedAt = DateTime.UtcNow;
+            payment.UpdatedAt = DateTime.UtcNow;
             payment.Status = PaymentStatus.Pending;
 
             reservation.Status = ReservationStatus.PendingPayment;

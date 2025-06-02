@@ -106,9 +106,10 @@ namespace CarMS_API.Repositorys
             {
                 Subject = new ClaimsIdentity(new[]
                 {
+                    new Claim("userId", user.Id),
                     new Claim("userName", user.UserName),
                     new Claim("fullName", user.FullName),
-                    new Claim("id", user.Id),
+                    new Claim("phoneNumber", user.PhoneNumber),
                     new Claim(ClaimTypes.Email, user.Email),
                     new Claim(ClaimTypes.Role, roles.FirstOrDefault() ?? SD.Role_Buyer)
             }),

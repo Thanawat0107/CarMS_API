@@ -14,7 +14,8 @@
         public string EngineNumber { get; set; }
         public string Model { get; set; }
         public int Year { get; set; }
-        public  int Price { get; set; }
+        public int Price { get; set; }
+        public int ReservationPrice { get; set; }
         public int Mileage { get; set; }
         public string Color { get; set; }
 

@@ -70,7 +70,7 @@ namespace CarMS_API.Controllers
         }
 
         [HttpPost("create")]
-        public async Task<IActionResult> Create(SellerCreateDto sellerDto)
+        public async Task<IActionResult> Create([FromBody] SellerCreateDto sellerDto)
         {
             var existingSeller = await _sellerRepo.FirstOrDefaultAsync(s => s.UserId == sellerDto.UserId);
             if (existingSeller != null)
@@ -91,7 +91,7 @@ namespace CarMS_API.Controllers
             await _userManager.AddToRoleAsync(user, SD.Role_Seller);
 
             var seller = _mapper.Map<Seller>(sellerDto);
-            seller.IsVerified = true;
+            seller.IsVerified = false;
 
             var created = await _sellerRepo.AddAsync(seller);
             var result = _mapper.Map<SellerCreateDto>(created);
@@ -100,9 +100,9 @@ namespace CarMS_API.Controllers
         }
 
         [HttpPut("update/{sellerId}")]
-        public async Task<IActionResult> Update(SellerDto sellerDto)
+        public async Task<IActionResult> Update([FromBody] SellerCreateDto sellerDto, int sellerId)
         {
-            var seller = await _sellerRepo.GetByIdAsync(sellerDto.Id);
+            var seller = await _sellerRepo.GetByIdAsync(sellerId);
             if (seller == null) return NotFound(ApiResponse<string>.Fail("ไม่พบผู้ขายที่คุณต้องการแก้ไข"));
 
             _mapper.Map(sellerDto, seller);

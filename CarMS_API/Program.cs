@@ -116,11 +116,11 @@ builder.Services.AddCors();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+//if (app.Environment.IsDevelopment())
+//{
     app.UseSwagger();
     app.UseSwaggerUI();
-}
+//}
 
 app.UseCors(opt =>
 {
@@ -129,6 +129,14 @@ app.UseCors(opt =>
         .AllowCredentials()
         .WithOrigins("http://localhost:3000", "https://localhost:7001");
 });
+
+//app.UseCors(opt =>
+//{
+//    opt.AllowAnyHeader()
+//        .AllowAnyMethod()
+//        .AllowCredentials()
+//        .WithOrigins("http://10.103.0.17");
+//});
 
 try
 {

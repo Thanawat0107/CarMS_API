@@ -28,9 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="wwwroot\images\test\" />
-    <Folder Include="wwwroot\_next\wCEOUf7k_2OIdobS4GQdK\" />
-    <Folder Include="wwwroot\_next\ZFMwhjFzM59TRypnkuHDg\" />
+    <Folder Include="wwwroot\" />
   </ItemGroup>
 
 </Project>

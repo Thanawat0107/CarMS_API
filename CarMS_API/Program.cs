@@ -122,21 +122,21 @@ var app = builder.Build();
     app.UseSwaggerUI();
 //}
 
-app.UseCors(opt =>
-{
-    opt.AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials()
-        .WithOrigins("http://localhost:3000", "https://localhost:7001");
-});
-
 //app.UseCors(opt =>
 //{
 //    opt.AllowAnyHeader()
 //        .AllowAnyMethod()
 //        .AllowCredentials()
-//        .WithOrigins("http://10.103.0.17");
+//        .WithOrigins("http://localhost:3000", "https://localhost:7001");
 //});
+
+app.UseCors(opt =>
+{
+    opt.AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials()
+        .WithOrigins("http://10.103.0.17", "http://10.103.0.17/cs66/next/s07/wepcar");
+});
 
 try
 {

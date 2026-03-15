@@ -12,15 +12,15 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CarMS_API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250530163804_updateReservation")]
-    partial class updateReservation
+    [Migration("20260315134559_initial")]
+    partial class initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.4")
+                .HasAnnotation("ProductVersion", "9.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -227,6 +227,9 @@ namespace CarMS_API.Migrations
                     b.Property<int>("Price")
                         .HasColumnType("int");
 
+                    b.Property<int>("ReservationPrice")
+                        .HasColumnType("int");
+
                     b.Property<int?>("SellerId")
                         .HasColumnType("int");
 
@@ -350,12 +353,14 @@ namespace CarMS_API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("PaymentDate")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("PaymentMethod")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("Method")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PaidAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("ReservationId")
                         .HasColumnType("int");
@@ -365,6 +370,13 @@ namespace CarMS_API.Migrations
 
                     b.Property<double>("TotalPrice")
                         .HasColumnType("float");
+
+                    b.Property<string>("TransactionRef")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
@@ -381,25 +393,26 @@ namespace CarMS_API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("CanceledAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("CarId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("ExpiryAt")
+                    b.Property<DateTime?>("ExpiredAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("PaymentMethod")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PaymentStatus")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime>("ExpiryAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("ReservedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -409,7 +422,9 @@ namespace CarMS_API.Migrations
 
                     b.HasIndex("CarId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "CarId", "Status")
+                        .IsUnique()
+                        .HasFilter("[Status] = 0");
 
                     b.ToTable("Reservations");
                 });

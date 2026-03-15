@@ -68,7 +68,7 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.Password.RequireUppercase = false;
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequireDigit = false;
-    options.Password.RequiredLength = 2; // µÑé§¤èÒ¤ÇÒÁÂÒÇ¢Ñé¹µèÓ¢Í§ÃËÑÊ¼èÒ¹
+    options.Password.RequiredLength = 2; // ï¿½ï¿½é§¤ï¿½Ò¤ï¿½ï¿½ï¿½ï¿½ï¿½Ç¢ï¿½é¹µï¿½Ó¢Í§ï¿½ï¿½ï¿½Ê¼ï¿½Ò¹
 });
 
 #region JWT
@@ -92,7 +92,7 @@ builder.Services.AddAuthentication(u =>
 #endregion
 
 // Register AutoMapper
-builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
 //SERVICES
 builder.Services.AddScoped<RoleSeeder>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -122,21 +122,21 @@ var app = builder.Build();
     app.UseSwaggerUI();
 //}
 
-//app.UseCors(opt =>
-//{
-//    opt.AllowAnyHeader()
-//        .AllowAnyMethod()
-//        .AllowCredentials()
-//        .WithOrigins("http://localhost:3000", "https://localhost:7001");
-//});
-
 app.UseCors(opt =>
 {
-    opt.AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials()
-        .WithOrigins("http://10.103.0.17", "http://10.103.0.17/cs66/next/s07/wepcar");
+   opt.AllowAnyHeader()
+       .AllowAnyMethod()
+       .AllowCredentials()
+       .WithOrigins("https://localhost:5178", "http://localhost:3000");
 });
+
+// app.UseCors(opt =>
+// {
+//     opt.AllowAnyHeader()
+//         .AllowAnyMethod()
+//         .AllowCredentials()
+//         .WithOrigins("http://10.103.0.17", "http://10.103.0.17/cs66/next/s07/wepcar");
+// });
 
 try
 {

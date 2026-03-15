@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CarMS_API.Migrations
 {
     /// <inheritdoc />
-    public partial class initialDb : Migration
+    public partial class initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -211,6 +211,7 @@ namespace CarMS_API.Migrations
                     Model = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Year = table.Column<int>(type: "int", nullable: false),
                     Price = table.Column<int>(type: "int", nullable: false),
+                    ReservationPrice = table.Column<int>(type: "int", nullable: false),
                     Mileage = table.Column<int>(type: "int", nullable: false),
                     Color = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     EngineType = table.Column<int>(type: "int", nullable: false),
@@ -220,9 +221,9 @@ namespace CarMS_API.Migrations
                     ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsApproved = table.Column<bool>(type: "bit", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
                     IsUsed = table.Column<bool>(type: "bit", nullable: false),
+                    IsApproved = table.Column<bool>(type: "bit", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
@@ -247,10 +248,17 @@ namespace CarMS_API.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     CarId = table.Column<int>(type: "int", nullable: false),
+                    IsCollisionHistory = table.Column<bool>(type: "bit", nullable: false),
                     Detail = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Insurance = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Act = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Finance = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Source = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    VerifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    VerifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsApproved = table.Column<bool>(type: "bit", nullable: false),
+                    IsUsed = table.Column<bool>(type: "bit", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -264,27 +272,153 @@ namespace CarMS_API.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "CarMaintenances",
+                name: "Reservations",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     CarId = table.Column<int>(type: "int", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ServiceDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    TentativelyCost = table.Column<double>(type: "float", nullable: false)
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    ReservedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ExpiryAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ExpiredAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CanceledAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CarMaintenances", x => x.Id);
+                    table.PrimaryKey("PK_Reservations", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_CarMaintenances_Cars_CarId",
+                        name: "FK_Reservations_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Reservations_Cars_CarId",
                         column: x => x.CarId,
                         principalTable: "Cars",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.CreateTable(
+                name: "TestDrives",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    CarId = table.Column<int>(type: "int", nullable: false),
+                    AppointmentDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    StatusTestDrive = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TestDrives", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TestDrives_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TestDrives_Cars_CarId",
+                        column: x => x.CarId,
+                        principalTable: "Cars",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Approvals",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    CarHistoryId = table.Column<int>(type: "int", nullable: false),
+                    ApprovalStatus = table.Column<int>(type: "int", nullable: false),
+                    Remark = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ApprovedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Approvals", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Approvals_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Approvals_CarHistories_CarHistoryId",
+                        column: x => x.CarHistoryId,
+                        principalTable: "CarHistories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CarMaintenances",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    CarHistoryId = table.Column<int>(type: "int", nullable: true),
+                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ServiceDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    TentativelyCost = table.Column<double>(type: "float", nullable: false),
+                    IsUsed = table.Column<bool>(type: "bit", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CarMaintenances", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CarMaintenances_CarHistories_CarHistoryId",
+                        column: x => x.CarHistoryId,
+                        principalTable: "CarHistories",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Payments",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ReservationId = table.Column<int>(type: "int", nullable: false),
+                    PaidAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    TotalPrice = table.Column<double>(type: "float", nullable: false),
+                    Method = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    TransactionRef = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Payments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Payments_Reservations_ReservationId",
+                        column: x => x.ReservationId,
+                        principalTable: "Reservations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Approvals_CarHistoryId",
+                table: "Approvals",
+                column: "CarHistoryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Approvals_UserId",
+                table: "Approvals",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
@@ -331,9 +465,9 @@ namespace CarMS_API.Migrations
                 column: "CarId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_CarMaintenances_CarId",
+                name: "IX_CarMaintenances_CarHistoryId",
                 table: "CarMaintenances",
-                column: "CarId");
+                column: "CarHistoryId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Cars_BrandId",
@@ -346,14 +480,44 @@ namespace CarMS_API.Migrations
                 column: "SellerId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Payments_ReservationId",
+                table: "Payments",
+                column: "ReservationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Reservations_CarId",
+                table: "Reservations",
+                column: "CarId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Reservations_UserId_CarId_Status",
+                table: "Reservations",
+                columns: new[] { "UserId", "CarId", "Status" },
+                unique: true,
+                filter: "[Status] = 0");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Sellers_UserId",
                 table: "Sellers",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TestDrives_CarId",
+                table: "TestDrives",
+                column: "CarId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TestDrives_UserId",
+                table: "TestDrives",
                 column: "UserId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "Approvals");
+
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims");
 
@@ -370,13 +534,22 @@ namespace CarMS_API.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "CarHistories");
-
-            migrationBuilder.DropTable(
                 name: "CarMaintenances");
 
             migrationBuilder.DropTable(
+                name: "Payments");
+
+            migrationBuilder.DropTable(
+                name: "TestDrives");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoles");
+
+            migrationBuilder.DropTable(
+                name: "CarHistories");
+
+            migrationBuilder.DropTable(
+                name: "Reservations");
 
             migrationBuilder.DropTable(
                 name: "Cars");

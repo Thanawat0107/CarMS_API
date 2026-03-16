@@ -15,42 +15,35 @@ namespace CarMS_API.Controllers
     public class TestDrivesController : ControllerBase
     {
         private readonly IRepository<TestDrive> _TestDriveRepo;
-        //private readonly ISearchableRepository<TestDrive, TestDriveSearchParams> _searchRepo;
         private readonly IMapper _mapper;
         public TestDrivesController(IRepository<TestDrive> TestDriveRepo,
-            //ISearchableRepository<TestDrive, TestDriveSearchParams> searchRepo,
             IMapper mapper)
         {
             _TestDriveRepo = TestDriveRepo;
-            //_searchRepo = searchRepo;
             _mapper = mapper;
         }
 
-        //[HttpGet]
-        //public async Task<IActionResult> GetAll([FromQuery] TestDriveSearchParams searchParams)
-        //{
-        //    var filter = _searchRepo.BuildFilter(searchParams);
-        //    var orderBy = _searchRepo.BuildSort(searchParams.SortBy);
+        [HttpGet("getall")]
+        public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 10)
+        {
+            var (testDrives, totalCount) = await _TestDriveRepo.GetAllAsync(
+                include: query => query
+                    .Include(q => q.Car),
+                pageNumber: pageNumber,
+                pageSize: pageSize
+            );
 
-        //    var (TestDrives, totalCount) = await _TestDriveRepo.GetAllAsync(
-        //        filter,
-        //        orderBy,
-        //        _searchRepo.Include(),
-        //        searchParams.PageNumber,
-        //        searchParams.PageSize
-        //    );
+            var result = _mapper.Map<IEnumerable<TestDriveDto>>(testDrives);
 
-        //    var result = _mapper.Map<IEnumerable<TestDriveDto>>(TestDrives);
+            var meta = new PaginationMeta
+            {
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
 
-        //    var pagination = new PaginationMeta
-        //    {
-        //        TotalCount = totalCount,
-        //        PageNumber = searchParams.PageNumber,
-        //        PageSize = searchParams.PageSize
-        //    };
-
-        //    return Ok(ApiResponse<IEnumerable<TestDriveDto>>.Success(result, "โหลดรายการทดลองขับสำเร็จ", pagination));
-        //}
+            return Ok(ApiResponse<IEnumerable<TestDriveDto>>.Success(result, "โหลดรายการทดลองขับสำเร็จ", meta));
+        }
 
         [HttpGet("{TestDriveId}")]
         public async Task<IActionResult> GetById(int TestDriveId)

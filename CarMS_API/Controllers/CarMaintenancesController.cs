@@ -15,68 +15,36 @@ namespace CarMS_API.Controllers
     public class CarMaintenancesController : ControllerBase
     {
         private readonly IRepository<CarMaintenance> _carMaintenanceRepo;
-        //private readonly ISearchableRepository<CarMaintenance, CarMaintenanceSearchParams> _searchRepo;
         private readonly IMapper _mapper;
 
         public CarMaintenancesController(
             IRepository<CarMaintenance> carMaintenanceRepo,
-            //ISearchableRepository<CarMaintenance, CarMaintenanceSearchParams> searchRepo, 
             IMapper mapper
         )
         {
             _carMaintenanceRepo = carMaintenanceRepo;
-            //_searchRepo = searchRepo;
             _mapper = mapper;
         }
 
-        //[HttpGet]
-        //public async Task<IActionResult> GetAll([FromQuery] CarMaintenanceSearchParams searchParams)
-        //{
-        //    var filter = _searchRepo.BuildFilter(searchParams);
-        //    var orderBy = _searchRepo.BuildSort(searchParams.SortBy);
+        [HttpGet("getall")]
+        public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 10)
+        {
+            var (maintenances, totalCount) = await _carMaintenanceRepo.GetAllAsync(
+                pageNumber: pageNumber,
+                pageSize: pageSize
+            );
 
-        //    var (maintenances, totalCount) = await _carMaintenanceRepo
-        //        .GetAllAsync(
-        //        filter,
-        //        orderBy,
-        //        _searchRepo.Include(),
-        //        searchParams.PageNumber,
-        //        searchParams.PageSize
-        //    );
+            var result = _mapper.Map<IEnumerable<CarMaintenanceDto>>(maintenances);
 
-        //    var result = _mapper.Map<IEnumerable<CarMaintenanceDto>>(maintenances);
+            var meta = new PaginationMeta
+            {
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
 
-        //    var pagination = new PaginationMeta
-        //    {
-        //        TotalCount = totalCount,
-        //        PageNumber = searchParams.PageNumber,
-        //        PageSize = searchParams.PageSize
-        //    };
-
-        //    return Ok(ApiResponse
-        //        <IEnumerable<CarMaintenanceDto>>
-        //        .Success(result, 
-        //        "โหลดรายการบำรุงรักษารถเรียบร้อย",
-        //        pagination));
-        //}
-
-        //[HttpGet("{carMaintenanceId}")]
-        //public async Task<IActionResult> GetById(int carMaintenanceId)
-        //{
-        //    var carMaintenance = await _carMaintenanceRepo
-        //        .GetByIdAsync(carMaintenanceId,
-        //        q => q.Include(c => c.CarHistory).ThenInclude(c => c.Car));
-        //    if (carMaintenance == null) 
-        //        return NotFound(ApiResponse<string>
-        //            .Fail("ไม่พบการบำรุงรักษารถ"));
-
-        //    var result = _mapper.Map<CarMaintenanceDto>(carMaintenance);
-
-        //    return Ok(
-        //        ApiResponse<CarMaintenanceDto>
-        //        .Success(result,
-        //        "โหลดการบำรุงรักษารถเรียบร้อย"));
-        //}
+            return Ok(ApiResponse<IEnumerable<CarMaintenanceDto>>.Success(result, "โหลดรายการบำรุงรักษารถเรียบร้อย", meta));
+        }
 
         [HttpPost]
         public async Task<IActionResult> Create(CarMaintenanceCreateDto carMaintenanceDto)

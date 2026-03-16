@@ -16,46 +16,38 @@ namespace BookingMS_API.Controllers
     {
         private readonly IRepository<Booking> _BookingRepo;
         private readonly IRepository<Car> _carRepo;
-        //private readonly ISearchableRepository<Booking, BookingSearchParams> _searchRepo;
         private readonly IMapper _mapper;
         public BookingsController(
             IRepository<Booking> BookingRepo,
-            //ISearchableRepository<Booking, 
-            //BookingSearchParams> searchRepo,
             IRepository<Car> carRepo,
             IMapper mapper)
         {
             _BookingRepo = BookingRepo;
-            //_searchRepo = searchRepo;
             _carRepo = carRepo;
             _mapper = mapper;
         }
 
-        //[HttpGet("getall")]
-        //public async Task<IActionResult> GetAll([FromQuery] BookingSearchParams searchParams)
-        //{
-        //    var filter = _searchRepo.BuildFilter(searchParams);
-        //    var orderBy = _searchRepo.BuildSort(searchParams.SortBy);
+        [HttpGet("getall")]
+        public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 10)
+        {
+            var (bookings, totalCount) = await _BookingRepo.GetAllAsync(
+                include: query => query
+                    .Include(q => q.Car),
+                pageNumber: pageNumber,
+                pageSize: pageSize
+            );
 
-        //    var (Bookings, totalCount) = await _BookingRepo.GetAllAsync(
-        //        filter,
-        //        orderBy,
-        //        include: _searchRepo.Include(),
-        //        searchParams.PageNumber,
-        //        searchParams.PageSize
-        //    );
+            var result = _mapper.Map<IEnumerable<BookingDto>>(bookings);
 
-        //    var result = _mapper.Map<IEnumerable<BookingDto>>(Bookings);
+            var meta = new PaginationMeta
+            {
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
 
-        //    var pagination = new PaginationMeta
-        //    {
-        //        TotalCount = totalCount,
-        //        PageNumber = searchParams.PageNumber,
-        //        PageSize = searchParams.PageSize
-        //    };
-
-        //    return Ok(ApiResponse<IEnumerable<BookingDto>>.Success(result, "โหลดรายการจองรถเรียบร้อย", pagination));
-        //}
+            return Ok(ApiResponse<IEnumerable<BookingDto>>.Success(result, "เรียกดูรายการจองสำเร็จ", meta));
+        }
 
         [HttpGet("getbyid/{BookingId}")]
         public async Task<IActionResult> GetById(int BookingId)

@@ -34,11 +34,11 @@
         public const string Status_Sold = "Sold";           // ขายแล้ว
 
         // --- Booking Status ---
-        public const string Reserve_Pending = "Pending";
-        public const string Reserve_PendingPayment = "PendingPayment";
-        public const string Reserve_Confirmed = "Confirmed";
-        public const string Reserve_Expired = "Expired";
-        public const string Reserve_Canceled = "Canceled";
+        public const string Booking_Pending = "Pending";
+        public const string Booking_PendingPayment = "PendingPayment";
+        public const string Booking_Confirmed = "Confirmed";
+        public const string Booking_Expired = "Expired";
+        public const string Booking_Canceled = "Canceled";
 
         // --- Payment Status ---
         public const string Payment_Pending = "Pending";

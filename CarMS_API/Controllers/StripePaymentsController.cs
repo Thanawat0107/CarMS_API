@@ -1,9 +1,6 @@
 ﻿using CarMS_API.Models;
 using CarMS_API.Repositorys.IRepositorys;
-using CarMS_API.Repositorys;
 using Microsoft.AspNetCore.Mvc;
-using CarMS_API.Models.Dto.CreateDto;
-using CarMS_API.Models.Responsts;
 using Stripe;
 using Microsoft.EntityFrameworkCore;
 using CarMS_API.Utility;
@@ -14,18 +11,15 @@ namespace CarMS_API.Controllers
     [ApiController]
     public class StripePaymentsController : ControllerBase
     {
-        //private readonly StripeRepository _stripe;
         private readonly IRepository<Booking> _BookingRepo;
         private readonly IRepository<Payment> _paymentRepo;
         private readonly string _webhookSecret;
 
         public StripePaymentsController(
-            //StripeRepository stripe,
             IRepository<Booking> BookingRepo,
              IRepository<Payment> paymentRepo,
             IConfiguration config)
         {
-            //_stripe = stripe;
             _BookingRepo = BookingRepo;
             _paymentRepo = paymentRepo;
             _webhookSecret = config["StripeSettings:WebhookSecret"];
@@ -86,7 +80,7 @@ namespace CarMS_API.Controllers
                     return BadRequest("Amount mismatch");
 
                 // อัปเดตสถานะการจอง
-                Booking.BookingStatus = SD.Reserve_Confirmed;
+                Booking.BookingStatus = SD.Booking_Confirmed;
                 Booking.UpdatedAt = DateTime.UtcNow;
                 await _BookingRepo.UpdateAsync(Booking);
 

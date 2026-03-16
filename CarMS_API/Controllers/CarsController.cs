@@ -17,46 +17,40 @@ namespace CarMS_API.Controllers
     public class CarsController : ControllerBase
     {
         private readonly IRepository<Car> _carRepo;
-        //private readonly ISearchableRepository<Car, CarSearchParams> _searchRepo;
         private readonly IMapper _mapper;
         private readonly IFileUpload _fileUpload;
 
         public CarsController(IRepository<Car> carRepo,
-            //ISearchableRepository<Car, CarSearchParams> searchRepo,
             IMapper mapper, 
             IFileUpload fileUpload)
         {
             _carRepo = carRepo;
-            //_searchRepo = searchRepo;
             _mapper = mapper;
             _fileUpload = fileUpload;
         }
 
-        //[HttpGet("getall")]
-        //public async Task<IActionResult> GetAll([FromQuery] CarSearchParams searchParams)
-        //{
-        //    var filter = _searchRepo.BuildFilter(searchParams);
-        //    var orderBy = _searchRepo.BuildSort(searchParams.SortBy);
+        [HttpGet("getall")]
+        public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 10)
+        {
+            var (cars, totalCount) = await _carRepo.GetAllAsync(
+                include: query => query
+                    .Include(q => q.Seller)
+                    .Include(q => q.Brand),
+                pageNumber: pageNumber,
+                pageSize: pageSize
+            );
 
-        //    var (cars, totalCount) = await _carRepo.GetAllAsync(
-        //        filter,
-        //        orderBy,
-        //        include: _searchRepo.Include(),
-        //        searchParams.PageNumber,
-        //        searchParams.PageSize
-        //    );
+            var result = _mapper.Map<IEnumerable<CarDto>>(cars);
 
-        //    var result = _mapper.Map<IEnumerable<CarDto>>(cars);
+            var meta = new PaginationMeta
+            {
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
 
-        //    var pagination = new PaginationMeta
-        //    {
-        //        TotalCount = totalCount,
-        //        PageNumber = searchParams.PageNumber,
-        //        PageSize = searchParams.PageSize
-        //    };
-
-        //    return Ok(ApiResponse<IEnumerable<CarDto>>.Success(result, "โหลดรายการรถเรียบร้อย", pagination));
-        //}
+            return Ok(ApiResponse<IEnumerable<CarDto>>.Success(result, "โหลดรายการรถเรียบร้อย", meta));
+        }
 
         [HttpGet("getbyid/{carId}")]
         public async Task<IActionResult> GetById(int carId)

@@ -17,47 +17,39 @@ namespace CarMS_API.Controllers
     {
         private readonly IRepository<Payment> _paymentRepo;
         private readonly IRepository<Booking> _BookingRepo;
-        //private readonly ISearchableRepository<Payment, PaymentSearchParams> _searchRepo;
         private readonly IMapper _mapper;
 
         public PaymentsController(
             IRepository<Payment> paymentRepo,
             IRepository<Booking> BookingRepo,
-            //ISearchableRepository<Payment, 
-            //PaymentSearchParams> searchRepo,
             IMapper mapper)
         {
             _BookingRepo = BookingRepo;
             _paymentRepo = paymentRepo;
-            //_searchRepo = searchRepo;
             _mapper = mapper;
         }
 
-        //[HttpGet("getall")]
-        //public async Task<IActionResult> GetAll([FromQuery] PaymentSearchParams searchParams)
-        //{
-        //    var filter = _searchRepo.BuildFilter(searchParams);
-        //    var orderBy = _searchRepo.BuildSort(searchParams.SortBy);
+        [HttpGet("getall")]
+        public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 10)
+        {
+            var (payments, totalCount) = await _paymentRepo.GetAllAsync(
+                include: query => query
+                    .Include(q => q.Booking),
+                pageNumber: pageNumber,
+                pageSize: pageSize
+            );
 
-        //    var (payments, totalCount) = await _paymentRepo.GetAllAsync(
-        //        filter,
-        //        orderBy,
-        //        _searchRepo.Include(),
-        //        searchParams.PageNumber,
-        //        searchParams.PageSize
-        //    );
+            var result = _mapper.Map<IEnumerable<PaymentDto>>(payments);
 
-        //    var result = _mapper.Map<IEnumerable<PaymentDto>>(payments);
+            var meta = new PaginationMeta
+            {
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
 
-        //    var pagination = new PaginationMeta
-        //    {
-        //        TotalCount = totalCount,
-        //        PageNumber = searchParams.PageNumber,
-        //        PageSize = searchParams.PageSize
-        //    };
-
-        //    return Ok(ApiResponse<IEnumerable<PaymentDto>>.Success(result, "โหลดรายการชำระเงินสำเร็จ", pagination));
-        //}
+            return Ok(ApiResponse<IEnumerable<PaymentDto>>.Success(result, "โหลดรายการชำระเงินสำเร็จ", meta));
+        }
 
         [HttpGet("getbyid/{paymentId}")]
         public async Task<IActionResult> GetById(int paymentId)

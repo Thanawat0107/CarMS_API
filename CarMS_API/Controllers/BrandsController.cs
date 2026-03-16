@@ -16,45 +16,36 @@ namespace CarMS_API.Controllers
     public class BrandsController : ControllerBase
     {
         private readonly IRepository<Brand> _brandRepo;
-        //private readonly ISearchableRepository<Brand, BrandSearchParams> _searchRepo;
         private readonly IMapper _mapper;
         private readonly IFileUpload _fileUpload;
         public BrandsController(IRepository<Brand> brandRepo, 
-            //ISearchableRepository<Brand, BrandSearchParams> searchRepo, 
             IMapper mapper
             ,IFileUpload fileUpload)
         {
             _brandRepo = brandRepo;
-            //_searchRepo = searchRepo;
             _mapper = mapper;
             _fileUpload = fileUpload;
         }
 
-        //[HttpGet("getall")]
-        //public async Task<IActionResult> GetAll([FromQuery] BrandSearchParams searchParams)
-        //{
-        //    var filter = _searchRepo.BuildFilter(searchParams);
-        //    var orderBy = _searchRepo.BuildSort(searchParams.SortBy);
+        [HttpGet("getall")]
+        public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 10)
+        {
+            var (brands, totalCount) = await _brandRepo.GetAllAsync(
+                pageNumber: pageNumber,
+                pageSize: pageSize
+            );
 
-        //    var (brands, totalCount) = await _brandRepo.GetAllAsync(
-        //        filter,
-        //        orderBy,
-        //        _searchRepo.Include(),
-        //        searchParams.PageNumber,
-        //        searchParams.PageSize
-        //    );
+            var result = _mapper.Map<IEnumerable<BrandDto>>(brands);
 
-        //    var result = _mapper.Map<IEnumerable<BrandDto>>(brands);
+            var meta = new PaginationMeta
+            {
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
 
-        //    var pagination = new PaginationMeta
-        //    {
-        //        TotalCount = totalCount,
-        //        PageNumber = searchParams.PageNumber,
-        //        PageSize = searchParams.PageSize
-        //    };
-
-        //    return Ok(ApiResponse<IEnumerable<BrandDto>>.Success(result, "โหลดรายการแบรนด์สำเร็จ", pagination));
-        //}
+            return Ok(ApiResponse<IEnumerable<BrandDto>>.Success(result, "โหลดรายการแบรนด์สำเร็จ", meta));
+        }
 
         [HttpGet("getbyid/{brandId}")]
         public async Task<IActionResult> GetById(int brandId)

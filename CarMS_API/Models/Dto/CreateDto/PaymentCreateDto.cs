@@ -2,9 +2,9 @@
 {
     public class PaymentCreateDto
     {
-        public int ReservationId { get; set; }
+        public int BookingId { get; set; }
         public double TotalPrice { get; set; }
-        public PaymentMethod Method { get; set; }
+        public string PaymentMethod { get; set; }
         public string? TransactionRef { get; set; }
     }
 }

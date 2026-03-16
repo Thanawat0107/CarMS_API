@@ -4,8 +4,6 @@ using CarMS_API.Models.Dto.CreateDto;
 using CarMS_API.Models.Dto;
 using CarMS_API.Models.Responsts;
 using CarMS_API.Repositorys.IRepositorys;
-using CarMS_API.RequestHelpers;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,42 +14,42 @@ namespace CarMS_API.Controllers
     public class TestDrivesController : ControllerBase
     {
         private readonly IRepository<TestDrive> _TestDriveRepo;
-        private readonly ISearchableRepository<TestDrive, TestDriveSearchParams> _searchRepo;
+        //private readonly ISearchableRepository<TestDrive, TestDriveSearchParams> _searchRepo;
         private readonly IMapper _mapper;
         public TestDrivesController(IRepository<TestDrive> TestDriveRepo,
-            ISearchableRepository<TestDrive, TestDriveSearchParams> searchRepo,
+            //ISearchableRepository<TestDrive, TestDriveSearchParams> searchRepo,
             IMapper mapper)
         {
             _TestDriveRepo = TestDriveRepo;
-            _searchRepo = searchRepo;
+            //_searchRepo = searchRepo;
             _mapper = mapper;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] TestDriveSearchParams searchParams)
-        {
-            var filter = _searchRepo.BuildFilter(searchParams);
-            var orderBy = _searchRepo.BuildSort(searchParams.SortBy);
+        //[HttpGet]
+        //public async Task<IActionResult> GetAll([FromQuery] TestDriveSearchParams searchParams)
+        //{
+        //    var filter = _searchRepo.BuildFilter(searchParams);
+        //    var orderBy = _searchRepo.BuildSort(searchParams.SortBy);
 
-            var (TestDrives, totalCount) = await _TestDriveRepo.GetAllAsync(
-                filter,
-                orderBy,
-                _searchRepo.Include(),
-                searchParams.PageNumber,
-                searchParams.PageSize
-            );
+        //    var (TestDrives, totalCount) = await _TestDriveRepo.GetAllAsync(
+        //        filter,
+        //        orderBy,
+        //        _searchRepo.Include(),
+        //        searchParams.PageNumber,
+        //        searchParams.PageSize
+        //    );
 
-            var result = _mapper.Map<IEnumerable<TestDriveDto>>(TestDrives);
+        //    var result = _mapper.Map<IEnumerable<TestDriveDto>>(TestDrives);
 
-            var pagination = new PaginationMeta
-            {
-                TotalCount = totalCount,
-                PageNumber = searchParams.PageNumber,
-                PageSize = searchParams.PageSize
-            };
+        //    var pagination = new PaginationMeta
+        //    {
+        //        TotalCount = totalCount,
+        //        PageNumber = searchParams.PageNumber,
+        //        PageSize = searchParams.PageSize
+        //    };
 
-            return Ok(ApiResponse<IEnumerable<TestDriveDto>>.Success(result, "โหลดรายการทดลองขับสำเร็จ", pagination));
-        }
+        //    return Ok(ApiResponse<IEnumerable<TestDriveDto>>.Success(result, "โหลดรายการทดลองขับสำเร็จ", pagination));
+        //}
 
         [HttpGet("{TestDriveId}")]
         public async Task<IActionResult> GetById(int TestDriveId)

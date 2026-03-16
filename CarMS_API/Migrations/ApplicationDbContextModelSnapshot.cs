@@ -224,7 +224,7 @@ namespace CarMS_API.Migrations
                     b.Property<int>("Price")
                         .HasColumnType("int");
 
-                    b.Property<int>("ReservationPrice")
+                    b.Property<int>("BookingPrice")
                         .HasColumnType("int");
 
                     b.Property<int?>("SellerId")
@@ -359,7 +359,7 @@ namespace CarMS_API.Migrations
                     b.Property<DateTime>("PaidAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("ReservationId")
+                    b.Property<int>("BookingId")
                         .HasColumnType("int");
 
                     b.Property<int>("Status")
@@ -377,12 +377,12 @@ namespace CarMS_API.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ReservationId");
+                    b.HasIndex("BookingId");
 
                     b.ToTable("Payments");
                 });
 
-            modelBuilder.Entity("CarMS_API.Models.Reservation", b =>
+            modelBuilder.Entity("CarMS_API.Models.Booking", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -423,7 +423,7 @@ namespace CarMS_API.Migrations
                         .IsUnique()
                         .HasFilter("[Status] = 0");
 
-                    b.ToTable("Reservations");
+                    b.ToTable("Bookings");
                 });
 
             modelBuilder.Entity("CarMS_API.Models.Seller", b =>
@@ -675,16 +675,16 @@ namespace CarMS_API.Migrations
 
             modelBuilder.Entity("CarMS_API.Models.Payment", b =>
                 {
-                    b.HasOne("CarMS_API.Models.Reservation", "Reservation")
+                    b.HasOne("CarMS_API.Models.Booking", "Booking")
                         .WithMany()
-                        .HasForeignKey("ReservationId")
+                        .HasForeignKey("BookingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Reservation");
+                    b.Navigation("Booking");
                 });
 
-            modelBuilder.Entity("CarMS_API.Models.Reservation", b =>
+            modelBuilder.Entity("CarMS_API.Models.Booking", b =>
                 {
                     b.HasOne("CarMS_API.Models.Car", "Car")
                         .WithMany()

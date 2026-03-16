@@ -6,7 +6,7 @@ using CarMS_API.Models.Dto.CreateDto;
 using CarMS_API.Models.Responsts;
 using Stripe;
 using Microsoft.EntityFrameworkCore;
-using PaymentMethod = CarMS_API.Models.PaymentMethod;
+using CarMS_API.Utility;
 
 namespace CarMS_API.Controllers
 {
@@ -14,38 +14,39 @@ namespace CarMS_API.Controllers
     [ApiController]
     public class StripePaymentsController : ControllerBase
     {
-        private readonly StripeRepository _stripe;
-        private readonly IRepository<Reservation> _reservationRepo;
+        //private readonly StripeRepository _stripe;
+        private readonly IRepository<Booking> _BookingRepo;
         private readonly IRepository<Payment> _paymentRepo;
         private readonly string _webhookSecret;
 
-        public StripePaymentsController(StripeRepository stripe,
-            IRepository<Reservation> reservationRepo,
+        public StripePaymentsController(
+            //StripeRepository stripe,
+            IRepository<Booking> BookingRepo,
              IRepository<Payment> paymentRepo,
             IConfiguration config)
         {
-            _stripe = stripe;
-            _reservationRepo = reservationRepo;
+            //_stripe = stripe;
+            _BookingRepo = BookingRepo;
             _paymentRepo = paymentRepo;
             _webhookSecret = config["StripeSettings:WebhookSecret"];
         }
 
-        // การจ่ายผ่าน Stripe
-        [HttpPost("create-intent")]
-        public async Task<IActionResult> CreateIntent([FromBody] PaymentIntentCreateDto dto)
-        {
-            var reservation = await _reservationRepo.GetByIdAsync(dto.ReservationId, r => r.Include(r => r.Car));
+        //// การจ่ายผ่าน Stripe
+        //[HttpPost("create-intent")]
+        //public async Task<IActionResult> CreateIntent([FromBody] PaymentIntentCreateDto dto)
+        //{
+        //    var Booking = await _BookingRepo.GetByIdAsync(dto.BookingId, r => r.Include(r => r.Car));
 
-            if (reservation == null || reservation.Status != ReservationStatus.Pending)
-                return BadRequest(ApiResponse<string>.Fail("ไม่พบการจอง หรือสถานะไม่ถูกต้อง"));
+        //    if (Booking == null || Booking.Status != BookingStatus.Pending)
+        //        return BadRequest(ApiResponse<string>.Fail("ไม่พบการจอง หรือสถานะไม่ถูกต้อง"));
 
-            var intent = await _stripe.CreatePaymentIntentAsync(reservation.Car.Price, reservation.Id);
+        //    var intent = await _stripe.CreatePaymentIntentAsync(Booking.Car.Price, Booking.Id);
 
-            return Ok(ApiResponse<object>.Success(new
-            {
-                clientSecret = intent.ClientSecret,
-            }, "สร้าง Payment Intent สำเร็จ"));
-        }
+        //    return Ok(ApiResponse<object>.Success(new
+        //    {
+        //        clientSecret = intent.ClientSecret,
+        //    }, "สร้าง Payment Intent สำเร็จ"));
+        //}
 
         // Webhook Stripe (เมื่อจ่ายเงินสำเร็จ)
         [HttpPost("webhook")]
@@ -71,31 +72,31 @@ namespace CarMS_API.Controllers
                 if (await _paymentRepo.FirstOrDefaultAsync(p => p.TransactionRef == intent.Id) != null)
                     return Ok(); // จัดการไปแล้ว
 
-                var reservationIdStr = intent.Metadata["reservationId"];
-                if (!int.TryParse(reservationIdStr, out var reservationId))
-                    return BadRequest("Invalid reservationId in metadata");
+                var BookingIdStr = intent.Metadata["BookingId"];
+                if (!int.TryParse(BookingIdStr, out var BookingId))
+                    return BadRequest("Invalid BookingId in metadata");
 
-                var reservation = await _reservationRepo.GetByIdAsync(reservationId, r => r.Include(r => r.Car));
-                if (reservation == null)
-                    return BadRequest("Reservation not found");
+                var Booking = await _BookingRepo.GetByIdAsync(BookingId, r => r.Include(r => r.Car));
+                if (Booking == null)
+                    return BadRequest("Booking not found");
 
                 // เช็กจำนวนเงินต้องตรง
-                var expectedAmount = (long)(reservation.Car.Price * 100);
+                var expectedAmount = (long)(Booking.Car.Price * 100);
                 if (intent.AmountReceived != expectedAmount)
                     return BadRequest("Amount mismatch");
 
                 // อัปเดตสถานะการจอง
-                reservation.Status = ReservationStatus.Confirmed;
-                reservation.UpdatedAt = DateTime.UtcNow;
-                await _reservationRepo.UpdateAsync(reservation);
+                Booking.BookingStatus = SD.Reserve_Confirmed;
+                Booking.UpdatedAt = DateTime.UtcNow;
+                await _BookingRepo.UpdateAsync(Booking);
 
                 // บันทึก Payment
                 var payment = new Payment
                 {
-                    ReservationId = reservation.Id,
-                    Method = PaymentMethod.CreditCard,
-                    TotalPrice = reservation.Car.Price,
-                    Status = PaymentStatus.Paid,
+                    BookingId = Booking.Id,
+                    PaymentMethod = SD.PaymentMethod_CreditCard,
+                    TotalPrice = Booking.Car.Price,
+                    PaymentStatus = SD.Payment_Paid,
                     PaidAt = DateTime.UtcNow,
                     TransactionRef = intent.Id,
                     CreatedAt = DateTime.UtcNow,
@@ -111,7 +112,7 @@ namespace CarMS_API.Controllers
         public async Task<IActionResult> RefundPayment([FromBody] string transactionRef)
         {
             var payment = await _paymentRepo.FirstOrDefaultAsync(p => p.TransactionRef == transactionRef);
-            if (payment == null || payment.Status != PaymentStatus.Paid)
+            if (payment == null || payment.PaymentStatus != SD.Payment_Paid)
                 return BadRequest("ไม่พบรายการชำระเงิน หรือชำระเงินยังไม่สำเร็จ");
 
             var refundOptions = new RefundCreateOptions
@@ -123,7 +124,7 @@ namespace CarMS_API.Controllers
             var refund = await refundService.CreateAsync(refundOptions);
 
             // อัปเดตสถานะในฐานข้อมูล
-            payment.Status = PaymentStatus.Refunded;
+            payment.PaymentStatus = SD.Payment_Refunded;
             payment.UpdatedAt = DateTime.UtcNow;
             await _paymentRepo.UpdateAsync(payment);
 

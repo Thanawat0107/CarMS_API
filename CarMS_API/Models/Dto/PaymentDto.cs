@@ -3,12 +3,12 @@
     public class PaymentDto
     {
         public int Id { get; set; }
-        public int ReservationId { get; set; }
-        public ReservationDto Reservation { get; set; }
+        public int BookingId { get; set; }
+        public BookingDto Booking { get; set; }
         public DateTime PaidAt { get; set; } //เวลาชำระ
         public double TotalPrice { get; set; } //ยอดเงินที่ชำระ
-        public PaymentMethod Method { get; set; } //วิธีจ่ายจริง
-        public PaymentStatus Status { get; set; }
+        public string PaymentMethod { get; set; } //วิธีจ่ายจริง
+        public string PaymentStatus { get; set; }
         public string TransactionRef { get; set; } //เลขอ้างอิงธุรกรรม
     }
 }

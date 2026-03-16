@@ -8,8 +8,7 @@
         public int CarId { get; set; }
         public Car Car { get; set; }
         public DateTime AppointmentDate { get; set; }
-        public StatusTestDrive StatusTestDrive { get; set; }
+        public DateTime CreatedAt { get; set; } // เพิ่มเวลาที่ทำการจองเข้ามา
+        public string StatusTestDrive { get; set; }
     }
-
-    public enum StatusTestDrive { Cancel, Pending, Confirmed }
 }

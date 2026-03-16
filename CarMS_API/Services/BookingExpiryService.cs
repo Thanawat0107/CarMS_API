@@ -8,16 +8,16 @@ using Polly;
 
 namespace CarMS_API.Services
 {
-    public class ReservationExpiryService : BackgroundService
+    public class BookingExpiryService : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
-        private readonly ILogger<ReservationExpiryService> _logger;
-        private readonly ReservationSettings _settings;
+        private readonly ILogger<BookingExpiryService> _logger;
+        private readonly BookingSettings _settings;
 
-        public ReservationExpiryService(
+        public BookingExpiryService(
             IServiceScopeFactory scopeFactory,
-            ILogger<ReservationExpiryService> logger,
-            IOptions<ReservationSettings> options)
+            ILogger<BookingExpiryService> logger,
+            IOptions<BookingSettings> options)
         {
             _scopeFactory = scopeFactory;
             _logger = logger;
@@ -39,7 +39,7 @@ namespace CarMS_API.Services
                     _isRunning = true;
 
                     using var scope = _scopeFactory.CreateScope();
-                    var reservationService = scope.ServiceProvider.GetRequiredService<IReservationService>();
+                    var BookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
 
                     try
                     {
@@ -50,7 +50,7 @@ namespace CarMS_API.Services
                                 attempt => TimeSpan.FromSeconds(10),
                                 (ex, ts, retry, ctx) => _logger.LogWarning($"Retry {retry} after {ts.TotalSeconds}s due to: {ex.Message}")
                             )
-                            .ExecuteAsync(() => reservationService.ExpireReservationsAsync(stoppingToken));
+                            .ExecuteAsync(() => BookingService.ExpireBookingsAsync(stoppingToken));
 
                         if (expiredCount > 0)
                         {
@@ -65,7 +65,7 @@ namespace CarMS_API.Services
                     _isRunning = false;
                 }
 
-                await Task.Delay(TimeSpan.FromMinutes(_settings.ReservationCleanupIntervalMinutes), stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(_settings.BookingCleanupIntervalMinutes), stoppingToken);
             }
         }
     }

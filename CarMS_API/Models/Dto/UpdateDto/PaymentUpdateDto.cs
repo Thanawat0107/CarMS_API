@@ -3,7 +3,8 @@
     public class PaymentUpdateDto
     {
         public double TotalPrice { get; set; }
-        public PaymentMethod Method { get; set; }
+        public string BookingStatus { get; set; }
+        public string PaymentMethod { get; set; }
         public string? TransactionRef { get; set; }
     }
 }

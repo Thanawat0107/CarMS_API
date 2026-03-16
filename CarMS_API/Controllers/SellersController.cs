@@ -4,9 +4,7 @@ using CarMS_API.Models.Dto;
 using CarMS_API.Models.Dto.CreateDto;
 using CarMS_API.Models.Responsts;
 using CarMS_API.Repositorys.IRepositorys;
-using CarMS_API.RequestHelpers;
 using CarMS_API.Utility;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -18,46 +16,46 @@ namespace CarMS_API.Controllers
     public class SellersController : ControllerBase
     {
         private readonly IRepository<Seller> _sellerRepo;
-        private readonly ISearchableRepository<Seller, SellerSearchParams> _searchRepo;
+        //private readonly ISearchableRepository<Seller, SellerSearchParams> _searchRepo;
         private readonly IMapper _mapper;
         private readonly UserManager<ApplicationUser> _userManager;
 
         public SellersController(IRepository<Seller> sellerRepo,
-            ISearchableRepository<Seller, SellerSearchParams> searchRepo,
+            //ISearchableRepository<Seller, SellerSearchParams> searchRepo,
             IMapper mapper,
             UserManager<ApplicationUser> userManager)
         {
             _sellerRepo = sellerRepo;
-            _searchRepo = searchRepo;
+            //_searchRepo = searchRepo;
             _mapper = mapper;
             _userManager = userManager;
         }
 
-        [HttpGet("getall")]
-        public async Task<IActionResult> GetAll([FromQuery] SellerSearchParams searchParams)
-        {
-            var filter = _searchRepo.BuildFilter(searchParams);
-            var orderBy = _searchRepo.BuildSort(searchParams.SortBy);
+        //[HttpGet("getall")]
+        //public async Task<IActionResult> GetAll([FromQuery] SellerSearchParams searchParams)
+        //{
+        //    var filter = _searchRepo.BuildFilter(searchParams);
+        //    var orderBy = _searchRepo.BuildSort(searchParams.SortBy);
 
-            var (sellers, totalCount) = await _sellerRepo.GetAllAsync(
-                filter,
-                orderBy,
-                _searchRepo.Include(),
-                searchParams.PageNumber,
-                searchParams.PageSize
-            );
+        //    var (sellers, totalCount) = await _sellerRepo.GetAllAsync(
+        //        filter,
+        //        orderBy,
+        //        _searchRepo.Include(),
+        //        searchParams.PageNumber,
+        //        searchParams.PageSize
+        //    );
 
-            var result = _mapper.Map<IEnumerable<SellerDto>>(sellers);
+        //    var result = _mapper.Map<IEnumerable<SellerDto>>(sellers);
 
-            var pagination = new PaginationMeta
-            {
-                TotalCount = totalCount,
-                PageNumber = searchParams.PageNumber,
-                PageSize = searchParams.PageSize
-            };
+        //    var pagination = new PaginationMeta
+        //    {
+        //        TotalCount = totalCount,
+        //        PageNumber = searchParams.PageNumber,
+        //        PageSize = searchParams.PageSize
+        //    };
 
-            return Ok(ApiResponse<IEnumerable<SellerDto>>.Success(result, "โหลดรายการผู้ขายสำเร็จ", pagination));
-        }
+        //    return Ok(ApiResponse<IEnumerable<SellerDto>>.Success(result, "โหลดรายการผู้ขายสำเร็จ", pagination));
+        //}
 
         [HttpGet("getbyid/{sellerId}")]
         public async Task<IActionResult> GetById(int sellerId)

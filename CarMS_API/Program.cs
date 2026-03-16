@@ -3,7 +3,6 @@ using CarMS_API.Models;
 using CarMS_API.Models.Mapper;
 using CarMS_API.Repositorys;
 using CarMS_API.Repositorys.IRepositorys;
-using CarMS_API.RequestHelpers;
 using CarMS_API.Services;
 using CarMS_API.Services.IServices;
 using CarMS_API.Utility;
@@ -56,8 +55,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(opt =>
 {
     opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
-builder.Services.Configure<ReservationSettings>(
-    builder.Configuration.GetSection("ReservationSettings"));
+builder.Services.Configure<BookingSettings>(
+    builder.Configuration.GetSection("BookingSettings"));
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 .AddEntityFrameworkStores<ApplicationDbContext>();
@@ -98,17 +97,8 @@ builder.Services.AddScoped<RoleSeeder>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IFileUpload, FileUpload>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
-builder.Services.AddScoped<IReservationService, ReservationService>();
-builder.Services.AddHostedService<ReservationExpiryService>();
-builder.Services.AddScoped<ISearchableRepository<Car, CarSearchParams>, CarSearchRepository>();
-builder.Services.AddScoped<ISearchableRepository<Brand, BrandSearchParams>, BrandSearchRepository>();
-builder.Services.AddScoped<ISearchableRepository<Seller, SellerSearchParams>, SellerSearchRepository>();
-builder.Services.AddScoped<ISearchableRepository<CarHistory, CarHistorySearchParams>, CarHistorySearchRepository>();
-builder.Services.AddScoped<ISearchableRepository<CarMaintenance, CarMaintenanceSearchParams>, CarMaintenanceSearchRepository>();
-builder.Services.AddScoped<ISearchableRepository<Approval, ApprovalSearchParams>, ApprovalSearchRepository>();
-builder.Services.AddScoped<ISearchableRepository<TestDrive, TestDriveSearchParams>, TestDriveSearchRepository>();
-builder.Services.AddScoped<ISearchableRepository<Reservation, ReservationSearchParams>, ReservationSearchRepository>();
-builder.Services.AddScoped<ISearchableRepository<Payment, PaymentSearchParams>, PaymentSearchRepository>();
+builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddHostedService<BookingExpiryService>();
 
 // CORS
 builder.Services.AddCors();

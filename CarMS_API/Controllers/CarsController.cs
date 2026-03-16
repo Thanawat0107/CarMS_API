@@ -5,12 +5,10 @@ using CarMS_API.Models.Dto.CreateDto;
 using CarMS_API.Models.Dto.UpdaeteDto;
 using CarMS_API.Models.Responsts;
 using CarMS_API.Repositorys.IRepositorys;
-using CarMS_API.RequestHelpers;
 using CarMS_API.Services.IServices;
 using CarMS_API.Utility;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Diagnostics;
 
 namespace CarMS_API.Controllers
 {
@@ -19,46 +17,46 @@ namespace CarMS_API.Controllers
     public class CarsController : ControllerBase
     {
         private readonly IRepository<Car> _carRepo;
-        private readonly ISearchableRepository<Car, CarSearchParams> _searchRepo;
+        //private readonly ISearchableRepository<Car, CarSearchParams> _searchRepo;
         private readonly IMapper _mapper;
         private readonly IFileUpload _fileUpload;
 
         public CarsController(IRepository<Car> carRepo,
-            ISearchableRepository<Car, CarSearchParams> searchRepo,
+            //ISearchableRepository<Car, CarSearchParams> searchRepo,
             IMapper mapper, 
             IFileUpload fileUpload)
         {
             _carRepo = carRepo;
-            _searchRepo = searchRepo;
+            //_searchRepo = searchRepo;
             _mapper = mapper;
             _fileUpload = fileUpload;
         }
 
-        [HttpGet("getall")]
-        public async Task<IActionResult> GetAll([FromQuery] CarSearchParams searchParams)
-        {
-            var filter = _searchRepo.BuildFilter(searchParams);
-            var orderBy = _searchRepo.BuildSort(searchParams.SortBy);
+        //[HttpGet("getall")]
+        //public async Task<IActionResult> GetAll([FromQuery] CarSearchParams searchParams)
+        //{
+        //    var filter = _searchRepo.BuildFilter(searchParams);
+        //    var orderBy = _searchRepo.BuildSort(searchParams.SortBy);
 
-            var (cars, totalCount) = await _carRepo.GetAllAsync(
-                filter,
-                orderBy,
-                include: _searchRepo.Include(),
-                searchParams.PageNumber,
-                searchParams.PageSize
-            );
+        //    var (cars, totalCount) = await _carRepo.GetAllAsync(
+        //        filter,
+        //        orderBy,
+        //        include: _searchRepo.Include(),
+        //        searchParams.PageNumber,
+        //        searchParams.PageSize
+        //    );
 
-            var result = _mapper.Map<IEnumerable<CarDto>>(cars);
+        //    var result = _mapper.Map<IEnumerable<CarDto>>(cars);
 
-            var pagination = new PaginationMeta
-            {
-                TotalCount = totalCount,
-                PageNumber = searchParams.PageNumber,
-                PageSize = searchParams.PageSize
-            };
+        //    var pagination = new PaginationMeta
+        //    {
+        //        TotalCount = totalCount,
+        //        PageNumber = searchParams.PageNumber,
+        //        PageSize = searchParams.PageSize
+        //    };
 
-            return Ok(ApiResponse<IEnumerable<CarDto>>.Success(result, "โหลดรายการรถเรียบร้อย", pagination));
-        }
+        //    return Ok(ApiResponse<IEnumerable<CarDto>>.Success(result, "โหลดรายการรถเรียบร้อย", pagination));
+        //}
 
         [HttpGet("getbyid/{carId}")]
         public async Task<IActionResult> GetById(int carId)

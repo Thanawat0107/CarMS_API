@@ -211,7 +211,7 @@ namespace CarMS_API.Migrations
                     Model = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Year = table.Column<int>(type: "int", nullable: false),
                     Price = table.Column<int>(type: "int", nullable: false),
-                    ReservationPrice = table.Column<int>(type: "int", nullable: false),
+                    BookingPrice = table.Column<int>(type: "int", nullable: false),
                     Mileage = table.Column<int>(type: "int", nullable: false),
                     Color = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     EngineType = table.Column<int>(type: "int", nullable: false),
@@ -272,7 +272,7 @@ namespace CarMS_API.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Reservations",
+                name: "Bookings",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -288,15 +288,15 @@ namespace CarMS_API.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Reservations", x => x.Id);
+                    table.PrimaryKey("PK_Bookings", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Reservations_AspNetUsers_UserId",
+                        name: "FK_Bookings_AspNetUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Reservations_Cars_CarId",
+                        name: "FK_Bookings_Cars_CarId",
                         column: x => x.CarId,
                         principalTable: "Cars",
                         principalColumn: "Id",
@@ -390,7 +390,7 @@ namespace CarMS_API.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ReservationId = table.Column<int>(type: "int", nullable: false),
+                    BookingId = table.Column<int>(type: "int", nullable: false),
                     PaidAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -403,9 +403,9 @@ namespace CarMS_API.Migrations
                 {
                     table.PrimaryKey("PK_Payments", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Payments_Reservations_ReservationId",
-                        column: x => x.ReservationId,
-                        principalTable: "Reservations",
+                        name: "FK_Payments_Bookings_BookingId",
+                        column: x => x.BookingId,
+                        principalTable: "Bookings",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -480,18 +480,18 @@ namespace CarMS_API.Migrations
                 column: "SellerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Payments_ReservationId",
+                name: "IX_Payments_BookingId",
                 table: "Payments",
-                column: "ReservationId");
+                column: "BookingId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Reservations_CarId",
-                table: "Reservations",
+                name: "IX_Bookings_CarId",
+                table: "Bookings",
                 column: "CarId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Reservations_UserId_CarId_Status",
-                table: "Reservations",
+                name: "IX_Bookings_UserId_CarId_Status",
+                table: "Bookings",
                 columns: new[] { "UserId", "CarId", "Status" },
                 unique: true,
                 filter: "[Status] = 0");
@@ -549,7 +549,7 @@ namespace CarMS_API.Migrations
                 name: "CarHistories");
 
             migrationBuilder.DropTable(
-                name: "Reservations");
+                name: "Bookings");
 
             migrationBuilder.DropTable(
                 name: "Cars");

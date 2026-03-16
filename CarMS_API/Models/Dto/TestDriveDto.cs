@@ -8,6 +8,6 @@
         public int CarId { get; set; }
         public CarDto Car { get; set; }
         public DateTime AppointmentDate { get; set; }
-        public StatusTestDrive StatusTestDrive { get; set; }
+        public string StatusTestDrive { get; set; }
     }
 }

@@ -2,7 +2,7 @@
 {
     public class PaymentIntentCreateDto
     {
-        public int ReservationId { get; set; }
+        public int BookingId { get; set; }
     }
 
 }

@@ -26,20 +26,14 @@ namespace CarMS_API.Models.Mapper
            .ForMember(dest => dest.User, opt => opt.MapFrom(src => src.User)).ReverseMap();
             CreateMap<Seller, SellerCreateDto>().ReverseMap();
 
-            CreateMap<CarHistory, CarHistoryCreateDto>().ReverseMap();
-            CreateMap<CarHistory, CarHistoryDto>().ReverseMap();
-
             CreateMap<CarMaintenance, CarMaintenanceCreateDto>().ReverseMap();
             CreateMap<CarMaintenance, CarMaintenanceDto>().ReverseMap();
-
-            CreateMap<Approval, ApprovalDto>().ReverseMap();
-            CreateMap<Approval, ApprovalCreateDto>().ReverseMap();
 
             CreateMap<TestDrive, TestDriveDto>().ReverseMap();
             CreateMap<TestDrive, TestDriveCreateDto>().ReverseMap();
 
-            CreateMap<Reservation, ReservationDto>().ReverseMap();
-            CreateMap<Reservation, ReservationCreateDto>().ReverseMap();
+            CreateMap<Booking, BookingDto>().ReverseMap();
+            CreateMap<Booking, BookingCreateDto>().ReverseMap();
 
             CreateMap<Payment, PaymentDto>().ReverseMap();
             CreateMap<Payment, PaymentCreateDto>().ReverseMap();

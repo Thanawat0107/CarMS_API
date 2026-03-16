@@ -1,16 +1,12 @@
 ﻿using AutoMapper;
-using CarMS_API.Data;
 using CarMS_API.Models;
 using CarMS_API.Models.Dto;
 using CarMS_API.Models.Dto.CreateDto;
 using CarMS_API.Models.Dto.UpdaeteDto;
-using CarMS_API.Models.Dto.ViewModelDto;
 using CarMS_API.Models.Responsts;
 using CarMS_API.Repositorys.IRepositorys;
-using CarMS_API.RequestHelpers;
 using CarMS_API.Services.IServices;
 using CarMS_API.Utility;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarMS_API.Controllers
@@ -20,45 +16,45 @@ namespace CarMS_API.Controllers
     public class BrandsController : ControllerBase
     {
         private readonly IRepository<Brand> _brandRepo;
-        private readonly ISearchableRepository<Brand, BrandSearchParams> _searchRepo;
+        //private readonly ISearchableRepository<Brand, BrandSearchParams> _searchRepo;
         private readonly IMapper _mapper;
         private readonly IFileUpload _fileUpload;
         public BrandsController(IRepository<Brand> brandRepo, 
-            ISearchableRepository<Brand, BrandSearchParams> searchRepo, 
+            //ISearchableRepository<Brand, BrandSearchParams> searchRepo, 
             IMapper mapper
             ,IFileUpload fileUpload)
         {
             _brandRepo = brandRepo;
-            _searchRepo = searchRepo;
+            //_searchRepo = searchRepo;
             _mapper = mapper;
             _fileUpload = fileUpload;
         }
 
-        [HttpGet("getall")]
-        public async Task<IActionResult> GetAll([FromQuery] BrandSearchParams searchParams)
-        {
-            var filter = _searchRepo.BuildFilter(searchParams);
-            var orderBy = _searchRepo.BuildSort(searchParams.SortBy);
+        //[HttpGet("getall")]
+        //public async Task<IActionResult> GetAll([FromQuery] BrandSearchParams searchParams)
+        //{
+        //    var filter = _searchRepo.BuildFilter(searchParams);
+        //    var orderBy = _searchRepo.BuildSort(searchParams.SortBy);
 
-            var (brands, totalCount) = await _brandRepo.GetAllAsync(
-                filter,
-                orderBy,
-                _searchRepo.Include(),
-                searchParams.PageNumber,
-                searchParams.PageSize
-            );
+        //    var (brands, totalCount) = await _brandRepo.GetAllAsync(
+        //        filter,
+        //        orderBy,
+        //        _searchRepo.Include(),
+        //        searchParams.PageNumber,
+        //        searchParams.PageSize
+        //    );
 
-            var result = _mapper.Map<IEnumerable<BrandDto>>(brands);
+        //    var result = _mapper.Map<IEnumerable<BrandDto>>(brands);
 
-            var pagination = new PaginationMeta
-            {
-                TotalCount = totalCount,
-                PageNumber = searchParams.PageNumber,
-                PageSize = searchParams.PageSize
-            };
+        //    var pagination = new PaginationMeta
+        //    {
+        //        TotalCount = totalCount,
+        //        PageNumber = searchParams.PageNumber,
+        //        PageSize = searchParams.PageSize
+        //    };
 
-            return Ok(ApiResponse<IEnumerable<BrandDto>>.Success(result, "โหลดรายการแบรนด์สำเร็จ", pagination));
-        }
+        //    return Ok(ApiResponse<IEnumerable<BrandDto>>.Success(result, "โหลดรายการแบรนด์สำเร็จ", pagination));
+        //}
 
         [HttpGet("getbyid/{brandId}")]
         public async Task<IActionResult> GetById(int brandId)

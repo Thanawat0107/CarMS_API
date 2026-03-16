@@ -1,6 +1,7 @@
 ﻿using CarMS_API.Data;
 using CarMS_API.Models;
 using CarMS_API.Services.IServices;
+using CarMS_API.Utility;
 using Microsoft.EntityFrameworkCore;
 
 namespace CarMS_API.Services
@@ -22,18 +23,18 @@ namespace CarMS_API.Services
 
             var expiredBookings = await _db.Bookings
                 .Include(r => r.Car)
-                .Where(r => r.Status == BookingStatus.Pending && r.ExpiryAt < now)
+                .Where(r => r.BookingStatus == SD.Reserve_Pending && r.ExpiryAt < now)
                 .ToListAsync(cancellationToken);
 
             foreach (var Booking in expiredBookings)
             {
-                Booking.Status = BookingStatus.Expired;
+                Booking.BookingStatus = SD.Reserve_Expired;
                 Booking.UpdatedAt = now;
                 Booking.ExpiredAt = now;
 
                 if (Booking.Car != null)
                 {
-                    Booking.Car.Status = Status.Available;
+                    Booking.Car.CarStatus = SD.Status_Available;
                 }
             }
 

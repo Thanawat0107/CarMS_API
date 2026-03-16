@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CarMS_API.Models;
+using CarMS_API.Utility;
 using CarMS_API.Repositorys.IRepositorys;
 using CarMS_API.Models.Dto;
 using CarMS_API.Models.Responsts;
@@ -75,20 +76,20 @@ namespace BookingMS_API.Controllers
             var Booking = _mapper.Map<Booking>(BookingDto);
             Booking.ReservedAt = DateTime.UtcNow;
             Booking.ExpiryAt = Booking.ReservedAt.AddHours(24);
-            Booking.Status = BookingStatus.Pending;
+            Booking.BookingStatus = SD.Reserve_Pending;
 
             var existing = await _BookingRepo.FirstOrDefaultAsync(r =>
                 r.CarId == Booking.CarId &&
                 r.UserId == Booking.UserId &&
-                r.Status == BookingStatus.Pending
+                r.BookingStatus == SD.Reserve_Pending
             );
 
             if (existing != null) return BadRequest(ApiResponse<string>.Fail("คุณได้จองรถคันนี้ไว้แล้ว"));
 
             var car = await _carRepo.GetByIdAsync(Booking.CarId);
-            if (car == null || car.Status != Status.Available) return BadRequest(ApiResponse<string>.Fail("รถไม่พร้อมให้จอง"));
+            if (car == null || car.CarStatus != SD.Status_Available) return BadRequest(ApiResponse<string>.Fail("รถไม่พร้อมให้จอง"));
 
-            car.Status = Status.Reserved;
+            car.CarStatus = SD.Status_Booked;
             await _carRepo.UpdateAsync(car);
 
             var created = await _BookingRepo.AddAsync(Booking);
@@ -101,13 +102,13 @@ namespace BookingMS_API.Controllers
         public async Task<IActionResult> Cancel(int BookingId)
         {
             var Booking = await _BookingRepo.GetByIdAsync(BookingId, r => r.Include(r => r.Car));
-            if (Booking == null || Booking.Status != BookingStatus.Pending)
+            if (Booking == null || Booking.BookingStatus != SD.Reserve_Pending)
                 return NotFound(ApiResponse<string>.Fail("ไม่สามารถยกเลิกได้"));
 
-            Booking.Status = BookingStatus.Canceled;
+            Booking.BookingStatus = SD.Reserve_Canceled;
             if (Booking.Car != null)
             {
-                Booking.Car.Status = Status.Available;
+                Booking.Car.CarStatus = SD.Status_Available;
             }
 
             Booking.CanceledAt = DateTime.UtcNow;

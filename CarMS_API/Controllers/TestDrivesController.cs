@@ -4,6 +4,7 @@ using CarMS_API.Models.Dto.CreateDto;
 using CarMS_API.Models.Dto;
 using CarMS_API.Models.Responsts;
 using CarMS_API.Repositorys.IRepositorys;
+using CarMS_API.Utility;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -66,7 +67,7 @@ namespace CarMS_API.Controllers
         {
             var testDrive = _mapper.Map<TestDrive>(TestDriveDto);
 
-            testDrive.StatusTestDrive = StatusTestDrive.Pending;
+            testDrive.StatusTestDrive = SD.TestDrive_Pending;
             await _TestDriveRepo.AddAsync(testDrive);
             var result = _mapper.Map<TestDriveCreateDto>(testDrive);
 

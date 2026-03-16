@@ -75,7 +75,7 @@ namespace CarMS_API.Controllers
             // อัปโหลดภาพ
             if (brandDto.ImageFile != null)
             {
-                brand.ImageUrl = await _fileUpload.UploadFile(brandDto.ImageFile, SD.ImgBrandPath);
+                brand.CarImages = await _fileUpload.UploadFile(brandDto.ImageFile, SD.ImgBrandPath);
             }
 
             var created  = await _brandRepo.AddAsync(brand);
@@ -94,11 +94,11 @@ namespace CarMS_API.Controllers
             // อัปเดตภาพ
             if (brandDto.ImageFile != null)
             {
-                if (!string.IsNullOrEmpty(brand.ImageUrl))
+                if (!string.IsNullOrEmpty(brand.CarImages))
                 {
-                    _fileUpload.DeleteFile(brand.ImageUrl);
+                    _fileUpload.DeleteFile(brand.CarImages);
                 }
-                brand.ImageUrl = await _fileUpload.UploadFile(brandDto.ImageFile, SD.ImgBrandPath);
+                brand.CarImages = await _fileUpload.UploadFile(brandDto.ImageFile, SD.ImgBrandPath);
             }
 
             await _brandRepo.UpdateAsync(brand);
@@ -113,9 +113,9 @@ namespace CarMS_API.Controllers
             if (brand == null) return NotFound(ApiResponse<string>.Fail($"ไม่พบแบรนด์ ID: {brandId}"));
 
             // ลบไฟล์ภาพก่อนลบสินค้า
-            if (!string.IsNullOrEmpty(brand.ImageUrl))
+            if (!string.IsNullOrEmpty(brand.CarImages))
             {
-                _fileUpload.DeleteFile(brand.ImageUrl);
+                _fileUpload.DeleteFile(brand.CarImages);
             }
 
             brand.IsDelete = true;

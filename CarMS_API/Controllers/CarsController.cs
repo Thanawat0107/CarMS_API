@@ -83,7 +83,7 @@ namespace CarMS_API.Controllers
             // อัปโหลดภาพ
             if (carDto.ImageFile != null)
             {
-                car.ImageUrl = await _fileUpload.UploadFile(carDto.ImageFile, SD.ImgProductPath);
+                car.CarImages = await _fileUpload.UploadFile(carDto.ImageFile, SD.ImgProductPath);
             }
 
             var created = await _carRepo.AddAsync(car);
@@ -103,11 +103,11 @@ namespace CarMS_API.Controllers
             // อัปเดตภาพ
             if (carDto.ImageFile != null)
             {
-                if (!string.IsNullOrEmpty(car.ImageUrl))
+                if (!string.IsNullOrEmpty(car.CarImages))
                 {
-                    _fileUpload.DeleteFile(car.ImageUrl);
+                    _fileUpload.DeleteFile(car.CarImages);
                 }
-                car.ImageUrl = await _fileUpload.UploadFile(carDto.ImageFile, SD.ImgProductPath);
+                car.CarImages = await _fileUpload.UploadFile(carDto.ImageFile, SD.ImgProductPath);
             }
 
             await _carRepo.UpdateAsync(car);
@@ -122,9 +122,9 @@ namespace CarMS_API.Controllers
             if (car == null) return NotFound(ApiResponse<string>.Fail("ไม่พบรถที่คุณต้องการลบ"));
 
             // ลบไฟล์ภาพก่อนลบสินค้า
-            if (!string.IsNullOrEmpty(car.ImageUrl))
+            if (!string.IsNullOrEmpty(car.CarImages))
             {
-                _fileUpload.DeleteFile(car.ImageUrl);
+                _fileUpload.DeleteFile(car.CarImages);
             }
 
             car.IsDeleted = true;

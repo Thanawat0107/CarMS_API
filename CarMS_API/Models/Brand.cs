@@ -4,7 +4,7 @@
     {
         public int Id { get; set; }
         public string Name { get; set; }
-        public string ImageUrl { get; set; }
+        public string CarImages { get; set; }
         public bool IsUsed { get; set; }
         public bool IsDelete { get; set; }
     }

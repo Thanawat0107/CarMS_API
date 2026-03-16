@@ -22,7 +22,7 @@ namespace CarMS_API.Data
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<Booking>()
-                .HasIndex(r => new { r.UserId, r.CarId, r.Status })
+                .HasIndex(r => new { r.UserId, r.CarId, r.BookingStatus })
                 .IsUnique()
                 .HasFilter("[Status] = 0"); // สมมุติว่า 0 = Pending
         }

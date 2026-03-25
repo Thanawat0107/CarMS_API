@@ -17,6 +17,7 @@ namespace BookingMS_API.Controllers
         private readonly IRepository<Booking> _BookingRepo;
         private readonly IRepository<Car> _carRepo;
         private readonly IMapper _mapper;
+        
         public BookingsController(
             IRepository<Booking> BookingRepo,
             IRepository<Car> carRepo,
@@ -68,42 +69,55 @@ namespace BookingMS_API.Controllers
             var Booking = _mapper.Map<Booking>(BookingDto);
             Booking.ReservedAt = DateTime.UtcNow;
             Booking.ExpiryAt = Booking.ReservedAt.AddHours(24);
-            Booking.BookingStatus = SD.Reserve_Pending;
+            Booking.BookingStatus = SD.Booking_Pending;
 
-            var existing = await _BookingRepo.FirstOrDefaultAsync(r =>
+            // 🌟 เช็คว่ามีใครจองรถคันนี้และยังค้างอยู่ในระบบหรือไม่ (ป้องกันรถ 1 คันโดนจองซ้อน)
+            var activeBooking = await _BookingRepo.FirstOrDefaultAsync(r =>
                 r.CarId == Booking.CarId &&
-                r.UserId == Booking.UserId &&
-                r.BookingStatus == SD.Reserve_Pending
+                (r.BookingStatus == SD.Booking_Pending || 
+                 r.BookingStatus == SD.Booking_PendingPayment || 
+                 r.BookingStatus == SD.Booking_Confirmed)
             );
 
-            if (existing != null) return BadRequest(ApiResponse<string>.Fail("คุณได้จองรถคันนี้ไว้แล้ว"));
+            if (activeBooking != null) 
+            {
+                if (activeBooking.UserId == Booking.UserId)
+                    return BadRequest(ApiResponse<string>.Fail("คุณได้จองรถคันนี้ไว้แล้ว"));
+                else
+                    return BadRequest(ApiResponse<string>.Fail("ขออภัย รถคันนี้อยู่ระหว่างการจองของลูกค้ารายอื่น"));
+            }
 
             var car = await _carRepo.GetByIdAsync(Booking.CarId);
-            if (car == null || car.CarStatus != SD.Status_Available) return BadRequest(ApiResponse<string>.Fail("รถไม่พร้อมให้จอง"));
+            if (car == null || car.CarStatus != SD.Status_Available) 
+                return BadRequest(ApiResponse<string>.Fail("รถไม่พร้อมให้จอง"));
 
+            // อัปเดตสถานะรถเป็น "ถูกจองแล้ว"
             car.CarStatus = SD.Status_Booked;
             await _carRepo.UpdateAsync(car);
 
             var created = await _BookingRepo.AddAsync(Booking);
             var result = _mapper.Map<BookingCreateDto>(created);
 
-            return Ok(ApiResponse<BookingCreateDto>.Success(result, "จองรถสำเร็จ รอการยืนยัน"));
+            return Ok(ApiResponse<BookingCreateDto>.Success(result, "จองรถสำเร็จ กรุณาชำระเงินภายใน 24 ชั่วโมง"));
         }
 
         [HttpPut("cancel/{BookingId}")]
         public async Task<IActionResult> Cancel(int BookingId)
         {
             var Booking = await _BookingRepo.GetByIdAsync(BookingId, r => r.Include(r => r.Car));
-            if (Booking == null || Booking.BookingStatus != SD.Reserve_Pending)
-                return NotFound(ApiResponse<string>.Fail("ไม่สามารถยกเลิกได้"));
+            
+            // 🌟 อนุญาตให้ยกเลิกได้ทั้งตอนที่พึ่งกดจอง (Pending) และตอนกำลังจะจ่ายเงิน (PendingPayment)
+            if (Booking == null || (Booking.BookingStatus != SD.Booking_Pending && Booking.BookingStatus != SD.Booking_PendingPayment))
+                return NotFound(ApiResponse<string>.Fail("รายการนี้ไม่สามารถยกเลิกได้ (อาจถูกยกเลิกไปแล้ว หรือชำระเงินแล้ว)"));
 
-            Booking.BookingStatus = SD.Reserve_Canceled;
+            Booking.BookingStatus = SD.Booking_Canceled;
+            Booking.CanceledAt = DateTime.UtcNow;
+
+            // คืนสถานะรถกลับเป็นว่าง
             if (Booking.Car != null)
             {
                 Booking.Car.CarStatus = SD.Status_Available;
             }
-
-            Booking.CanceledAt = DateTime.UtcNow;
 
             await _BookingRepo.UpdateAsync(Booking);
             var result = _mapper.Map<BookingCreateDto>(Booking);
@@ -113,6 +127,16 @@ namespace BookingMS_API.Controllers
         [HttpDelete("delete/{BookingId}")]
         public async Task<IActionResult> Delete(int BookingId)
         {
+            var booking = await _BookingRepo.GetByIdAsync(BookingId, r => r.Include(r => r.Car));
+            if (booking == null) return NotFound(ApiResponse<string>.Fail("ไม่พบรายการจอง"));
+
+            // 🌟 (Optional) ป้องกันไม่ให้ลบการจองที่เพิ่งชำระเงินไป หรือถ้าจะลบ ต้องคืนสถานะรถด้วย
+            if (booking.Car != null && booking.Car.CarStatus == SD.Status_Booked)
+            {
+                booking.Car.CarStatus = SD.Status_Available;
+                await _carRepo.UpdateAsync(booking.Car);
+            }
+
             await _BookingRepo.DeleteAsync(BookingId);
             return Ok(ApiResponse<string>.Success("ลบรายการจองรถเรียบร้อยแล้ว"));
         }

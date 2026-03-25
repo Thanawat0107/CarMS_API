@@ -1,4 +1,7 @@
-﻿namespace CarMS_API.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
+
+namespace CarMS_API.Models
 {
     public class Car
     {
@@ -42,6 +45,15 @@
         public bool IsApproved { get; set; }
         public bool IsDeleted { get; set; }
 
-        public string CarImages { get; set; }
+        public string CarImagesJson { get; set; } = "[]"; 
+
+        [NotMapped]
+        public List<string> CarImages
+        {
+            get => string.IsNullOrWhiteSpace(CarImagesJson) 
+                   ? new List<string>() 
+                   : JsonSerializer.Deserialize<List<string>>(CarImagesJson) ?? new List<string>();
+            set => CarImagesJson = JsonSerializer.Serialize(value ?? new List<string>());
+        }
     }
 }

@@ -56,8 +56,8 @@ namespace CarMS_API.Controllers
         public async Task<IActionResult> GetById(int carId)
         {
             var car = await _carRepo.GetByIdAsync(carId, 
-                q=>q.Include(q=>q.Seller)
-                .Include(q=>q.Brand));
+                q => q.Include(q => q.Seller)
+                      .Include(q => q.Brand));
 
             if (car == null) return NotFound(ApiResponse<string>.Fail("ไม่พบรถที่คุณค้นหา"));
             var result = _mapper.Map<CarDto>(car);
@@ -69,21 +69,35 @@ namespace CarMS_API.Controllers
         public async Task<IActionResult> Create([FromForm] CarCreateDto carDto)
         {
             var car = _mapper.Map<Car>(carDto);
+            
+            // Set ค่า Default
             car.CreatedAt = DateTime.UtcNow;
-            car.IsUsed = false;
-            car.IsApproved = false;
+            car.IsUsed = true; // ตามงานวิจัยคือรถมือสอง
+            car.IsApproved = false; // รอแอดมินอนุมัติ
             car.IsDeleted = false;
+            car.CarStatus = SD.Status_Available; // ค่า Default รอขาย
 
-            // อัปโหลดภาพ
-            if (carDto.ImageFile != null)
+            // 1. จัดการรูปภาพใหม่ (ถ้ามี)
+            var uploadedImageUrls = new List<string>();
+            if (carDto.NewImages != null && carDto.NewImages.Any())
             {
-                car.CarImages = await _fileUpload.UploadFile(carDto.ImageFile, SD.ImgProductPath);
+                foreach (var file in carDto.NewImages)
+                {
+                    var uploadedPath = await _fileUpload.UploadFile(file, SD.ImgProductPath);
+                    if (!string.IsNullOrEmpty(uploadedPath))
+                    {
+                        uploadedImageUrls.Add(uploadedPath);
+                    }
+                }
             }
 
-            var created = await _carRepo.AddAsync(car);
-            var result = _mapper.Map<CarCreateDto>(created);
+            // นำ List ของ URL ไปยัดใส่ Property FileList (ที่จะแปลงเป็น JSON ลง DB)
+            car.CarImages = uploadedImageUrls;
 
-            return Ok(ApiResponse<CarCreateDto>.Success(result, "สำเร็จ"));
+            var created = await _carRepo.AddAsync(car);
+            var result = _mapper.Map<CarDto>(created);
+
+            return Ok(ApiResponse<CarDto>.Success(result, "เพิ่มรถเข้าสู่ระบบเรียบร้อย รอการอนุมัติ"));
         }
 
         [HttpPut("update/{carId}")]
@@ -91,22 +105,51 @@ namespace CarMS_API.Controllers
         {
             var car = await _carRepo.GetByIdAsync(carId);
             if (car == null) return NotFound(ApiResponse<string>.Fail("ไม่พบรถที่คุณต้องการแก้ไข"));
-            _mapper.Map(carDto, car);
-            car.UpdatedAt = DateTime.UtcNow;
 
-            // อัปเดตภาพ
-            if (carDto.ImageFile != null)
+            // 1. ดึงรายการรูปเก่าที่มีอยู่เดิมใน Database
+            var currentImages = car.CarImages ?? new List<string>();
+            var imagesToKeep = carDto.KeepImages ?? new List<string>();
+            var finalImages = new List<string>();
+
+            // 2. ลบไฟล์จริงออกจากเซิร์ฟเวอร์ (สำหรับรูปที่ User ไม่ได้ส่งมาใน KeepImages)
+            foreach (var imgUrl in currentImages)
             {
-                if (!string.IsNullOrEmpty(car.CarImages))
+                if (imagesToKeep.Contains(imgUrl))
                 {
-                    _fileUpload.DeleteFile(car.CarImages);
+                    // รูปนี้ยังอยากเก็บไว้
+                    finalImages.Add(imgUrl);
                 }
-                car.CarImages = await _fileUpload.UploadFile(carDto.ImageFile, SD.ImgProductPath);
+                else
+                {
+                    // รูปนี้โดนสั่งลบ ให้ลบไฟล์ออกจาก Server จริงๆ
+                    _fileUpload.DeleteFile(imgUrl);
+                }
             }
 
+            // 3. อัปโหลดรูปใหม่ (ถ้ามีการแนบมาเพิ่ม)
+            if (carDto.NewImages != null && carDto.NewImages.Any())
+            {
+                foreach (var file in carDto.NewImages)
+                {
+                    var uploadedPath = await _fileUpload.UploadFile(file, SD.ImgProductPath);
+                    if (!string.IsNullOrEmpty(uploadedPath))
+                    {
+                        finalImages.Add(uploadedPath);
+                    }
+                }
+            }
+
+            // 4. Map ข้อมูลใหม่จาก DTO ทับลงไปในตัวแปล car (AutoMapper จะข้ามฟิลด์ที่ค่าเป็น null)
+            _mapper.Map(carDto, car);
+
+            // 5. อัปเดตข้อมูลรูปภาพชุดสุดท้าย และ Timestamp
+            car.CarImages = finalImages;
+            car.UpdatedAt = DateTime.UtcNow;
+
             await _carRepo.UpdateAsync(car);
-            var result = _mapper.Map<CarCreateDto>(car);
-            return Ok(ApiResponse<CarCreateDto>.Success(result, "อัปเดตรถเรียบร้อย"));
+            
+            var result = _mapper.Map<CarDto>(car);
+            return Ok(ApiResponse<CarDto>.Success(result, "อัปเดตข้อมูลรถเรียบร้อย"));
         }
 
         [HttpPut("delete/{carId}")]
@@ -115,15 +158,38 @@ namespace CarMS_API.Controllers
             var car = await _carRepo.GetByIdAsync(carId);
             if (car == null) return NotFound(ApiResponse<string>.Fail("ไม่พบรถที่คุณต้องการลบ"));
 
-            // ลบไฟล์ภาพก่อนลบสินค้า
-            if (!string.IsNullOrEmpty(car.CarImages))
+            // เปลี่ยนจาก Hard Delete เป็น Soft Delete 
+            // ไม่ควรลบไฟล์ภาพจริงๆ ทิ้ง เผื่อต้องการกู้ข้อมูลคืน
+            car.IsDeleted = true;
+            car.UpdatedAt = DateTime.UtcNow;
+
+            await _carRepo.UpdateAsync(car);
+            return Ok(ApiResponse<string>.Success("ลบรถเรียบร้อยแล้ว (Soft Delete)"));
+        }
+
+        [HttpPut("ApproveCar")]
+        public async Task<IActionResult> ApproveCar([FromBody] ApprovalCreateDto dto)
+        {
+            var car = await _carRepo.GetByIdAsync(dto.CarId);
+            if (car == null) return NotFound(ApiResponse<string>.Fail("ไม่พบรถที่ต้องการอนุมัติ"));
+
+            car.IsApproved = dto.IsApproved;
+            car.ApprovalRemark = dto.Remark;
+            
+            if (dto.IsApproved)
             {
-                _fileUpload.DeleteFile(car.CarImages);
+                car.ApprovedAt = DateTime.UtcNow;
+                car.CarStatus = SD.Status_Available;
+            }
+            else
+            {
+                car.CarStatus = SD.Status_Sold; // หรือสถานะอื่นตามต้องการเมื่อไม่อนุมัติ
             }
 
-            car.IsDeleted = true;
+            car.UpdatedAt = DateTime.UtcNow;
             await _carRepo.UpdateAsync(car);
-            return Ok(ApiResponse<string>.Success("ลบรถเรียบร้อยแล้ว"));
+
+            return Ok(ApiResponse<string>.Success("อัปเดตสถานะการอนุมัติเรียบร้อย"));
         }
     }
 }

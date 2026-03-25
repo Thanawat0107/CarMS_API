@@ -23,12 +23,12 @@ namespace CarMS_API.Services
 
             var expiredBookings = await _db.Bookings
                 .Include(r => r.Car)
-                .Where(r => r.BookingStatus == SD.Reserve_Pending && r.ExpiryAt < now)
+                .Where(r => r.BookingStatus == SD.Booking_Pending && r.ExpiryAt < now)
                 .ToListAsync(cancellationToken);
 
             foreach (var Booking in expiredBookings)
             {
-                Booking.BookingStatus = SD.Reserve_Expired;
+                Booking.BookingStatus = SD.Booking_Expired;
                 Booking.UpdatedAt = now;
                 Booking.ExpiredAt = now;
 

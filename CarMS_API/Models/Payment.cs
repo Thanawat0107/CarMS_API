@@ -9,7 +9,7 @@
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public decimal TotalPrice { get; set; } // ปรับเป็น decimal
-        public string SlipCarImages { get; set; } // เพิ่มช่องเก็บสลิปโอนเงิน
+        public string SlipImageUrl { get; set; } // เพิ่มช่องเก็บสลิปโอนเงิน
         public string PaymentMethod { get; set; }
         public string PaymentStatus { get; set; }
         public string TransactionRef { get; set; }

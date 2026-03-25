@@ -2,11 +2,8 @@
 {
     public class BookingCreateDto
     {
-        public int Id { get; set; }
         public int CarId { get; set; }
         public string UserId { get; set; }
-        public DateTime ReservedAt { get; set; } //เวลากดจอง
-        public DateTime? ExpiryAt { get; set; } //หมดอายุการจอง (ถ้าไม่ชำระ)
-        public string BookingStatus { get; set; }
+        // ReservedAt, ExpiryAt, BookingStatus ถูก set โดย server
     }
 }

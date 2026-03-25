@@ -16,6 +16,9 @@ namespace CarMS_API.Data
         public DbSet<TestDrive> TestDrives { get; set; }
         public DbSet<Booking> Bookings { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<Loan> Loans { get; set; }
+        public DbSet<Review> Reviews { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -24,7 +27,7 @@ namespace CarMS_API.Data
             modelBuilder.Entity<Booking>()
                 .HasIndex(r => new { r.UserId, r.CarId, r.BookingStatus })
                 .IsUnique()
-                .HasFilter("[Status] = 0"); // สมมุติว่า 0 = Pending
+                .HasFilter("[BookingStatus] = 'Booking_Pending'");
         }
     }
 }

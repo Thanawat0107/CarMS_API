@@ -6,6 +6,6 @@
         public string Name { get; set; }
         public string CarImages { get; set; }
         public bool IsUsed { get; set; }
-        public bool IsDelete { get; set; }
+        public bool IsDeleted { get; set; }
     }
 }

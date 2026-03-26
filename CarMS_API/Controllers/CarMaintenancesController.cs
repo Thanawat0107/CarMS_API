@@ -2,6 +2,7 @@
 using CarMS_API.Models;
 using CarMS_API.Models.Dto;
 using CarMS_API.Models.Dto.CreateDto;
+using CarMS_API.Models.Dto.UpdaeteDto;
 using CarMS_API.Models.Responsts;
 using CarMS_API.Repositorys.IRepositorys;
 using Microsoft.AspNetCore.Mvc;
@@ -69,7 +70,7 @@ namespace CarMS_API.Controllers
         }
 
         [HttpPut("update/{carMaintenanceId}")]
-        public async Task<IActionResult> Update(int carMaintenanceId, [FromBody] CarMaintenanceCreateDto carMaintenanceUpdateDto)
+        public async Task<IActionResult> Update(int carMaintenanceId, [FromBody] CarMaintenanceUpdateDto carMaintenanceUpdateDto)
         {
             // ค้นหาประวัติที่ต้องการแก้ไขด้วย URL Parameter
             var carMaintenance = await _carMaintenanceRepo.GetByIdAsync(carMaintenanceId);

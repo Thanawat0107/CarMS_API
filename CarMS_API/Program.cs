@@ -1,4 +1,5 @@
 using CarMS_API.Data;
+using CarMS_API.Hubs;
 using CarMS_API.Models;
 using CarMS_API.Models.Mapper;
 using CarMS_API.Repositorys;
@@ -120,7 +121,7 @@ app.UseCors(opt =>
    opt.AllowAnyHeader()
        .AllowAnyMethod()
        .AllowCredentials()
-       .WithOrigins("https://localhost:5178", "http://localhost:3000");
+       .WithOrigins("http://localhost:5178", "http://localhost:3000");
 });
 
 // app.UseCors(opt =>
@@ -151,8 +152,8 @@ app.UseAuthorization();
 app.MapControllers();
 
 // 🌟 จุดที่ 2: แมปเส้นทาง (Endpoint) สำหรับให้ Frontend ยิงเข้ามาเชื่อมต่อ
-app.MapHub<CarMS_API.Hubs.ChatHub>("/chatHub");
-app.MapHub<CarMS_API.Hubs.NotificationHub>("/notificationHub");
+app.MapHub<ChatHub>("/chatHub");
+app.MapHub<NotificationHub>("/notificationHub");
 
 using (var scope = app.Services.CreateScope())
 {

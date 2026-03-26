@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CarMS_API.Models;
 using CarMS_API.Models.Dto.CreateDto;
+using CarMS_API.Models.Dto.UpdaeteDto;
 using CarMS_API.Models.Dto;
 using CarMS_API.Models.Responsts;
 using CarMS_API.Repositorys.IRepositorys;
@@ -35,15 +36,18 @@ namespace CarMS_API.Controllers
         }
 
         [HttpGet("getall")]
-        public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 10)
+        public async Task<IActionResult> GetAll(string? userId, int? sellerId, int pageNumber = 1, int pageSize = 10)
         {
             var (testDrives, totalCount) = await _TestDriveRepo.GetAllAsync(
+                filter: q => (string.IsNullOrEmpty(userId) || q.UserId == userId) &&
+                             (!sellerId.HasValue || q.Car.SellerId == sellerId.Value),
                 include: query => query.Include(q => q.Car).Include(q => q.User),
                 pageNumber: pageNumber,
                 pageSize: pageSize
             );
 
-            var result = _mapper.Map<IEnumerable<TestDriveDto>>(testDrives);
+            var sortedList = testDrives.OrderByDescending(t => t.CreatedAt).ToList();
+            var result = _mapper.Map<IEnumerable<TestDriveDto>>(sortedList);
 
             var meta = new PaginationMeta
             {
@@ -99,7 +103,7 @@ namespace CarMS_API.Controllers
         }
 
         [HttpPut("update/{testDriveId}")]
-        public async Task<IActionResult> Update(int testDriveId, [FromBody] TestDriveCreateDto TestDriveDto)
+        public async Task<IActionResult> Update(int testDriveId, [FromBody] TestDriveUpdateDto TestDriveDto)
         {
             // Include รถยนต์มาด้วยเพื่อเอาชื่อรุ่นไปโชว์ในแจ้งเตือน
             var TestDrive = await _TestDriveRepo.GetByIdAsync(testDriveId, q => q.Include(t => t.Car));

@@ -2,6 +2,7 @@
 using CarMS_API.Models;
 using CarMS_API.Models.Dto;
 using CarMS_API.Models.Dto.CreateDto;
+using CarMS_API.Models.Dto.UpdaeteDto;
 using CarMS_API.Models.Responsts;
 using CarMS_API.Repositorys.IRepositorys;
 using CarMS_API.Utility;
@@ -29,22 +30,17 @@ namespace CarMS_API.Controllers
         }
 
         [HttpGet("getall")]
-        public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 10)
+        public async Task<IActionResult> GetAll(bool? isVerified, int pageNumber = 1, int pageSize = 10) // 🌟 เพิ่ม bool? isVerified
         {
             var (sellers, totalCount) = await _sellerRepo.GetAllAsync(
-                include: query => query.Include(q => q.User), // 🌟 เพิ่ม Include User
+                filter: q => !isVerified.HasValue || q.IsVerified == isVerified.Value,
+                include: query => query.Include(q => q.User), 
                 pageNumber: pageNumber,
                 pageSize: pageSize
             );
 
             var result = _mapper.Map<IEnumerable<SellerDto>>(sellers);
-
-            var meta = new PaginationMeta
-            {
-                TotalCount = totalCount,
-                PageNumber = pageNumber,
-                PageSize = pageSize
-            };
+            var meta = new PaginationMeta { TotalCount = totalCount, PageNumber = pageNumber, PageSize = pageSize };
 
             return Ok(ApiResponse<IEnumerable<SellerDto>>.Success(result, "โหลดรายการผู้ขายสำเร็จ", meta));
         }
@@ -107,7 +103,7 @@ namespace CarMS_API.Controllers
 
         // ผู้ขายอัปเดตข้อมูลส่วนตัว (เช่น เปลี่ยนที่อยู่)
         [HttpPut("update/{sellerId}")]
-        public async Task<IActionResult> Update([FromBody] SellerCreateDto sellerDto, int sellerId)
+        public async Task<IActionResult> Update([FromBody] SellerUpdateDto sellerDto, int sellerId)
         {
             // 🌟 ปรับแก้: รับพารามิเตอร์ให้ตรงกับ URL
             var seller = await _sellerRepo.GetByIdAsync(sellerId);

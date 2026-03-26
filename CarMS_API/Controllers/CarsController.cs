@@ -30,9 +30,12 @@ namespace CarMS_API.Controllers
         }
 
         [HttpGet("getall")]
-        public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 10)
+        public async Task<IActionResult> GetAll(int? sellerId, bool? isApproved, int pageNumber = 1, int pageSize = 10)
         {
             var (cars, totalCount) = await _carRepo.GetAllAsync(
+                filter: q => !q.IsDeleted &&
+                             (!sellerId.HasValue || q.SellerId == sellerId.Value) && // กรองตามเต็นท์รถ
+                             (!isApproved.HasValue || q.IsApproved == isApproved.Value), // กรองสถานะอนุมัติ
                 include: query => query
                     .Include(q => q.Seller)
                     .Include(q => q.Brand),
@@ -41,13 +44,7 @@ namespace CarMS_API.Controllers
             );
 
             var result = _mapper.Map<IEnumerable<CarDto>>(cars);
-
-            var meta = new PaginationMeta
-            {
-                TotalCount = totalCount,
-                PageNumber = pageNumber,
-                PageSize = pageSize
-            };
+            var meta = new PaginationMeta { TotalCount = totalCount, PageNumber = pageNumber, PageSize = pageSize };
 
             return Ok(ApiResponse<IEnumerable<CarDto>>.Success(result, "โหลดรายการรถเรียบร้อย", meta));
         }
@@ -59,9 +56,11 @@ namespace CarMS_API.Controllers
                 q => q.Include(q => q.Seller)
                       .Include(q => q.Brand));
 
-            if (car == null) return NotFound(ApiResponse<string>.Fail("ไม่พบรถที่คุณค้นหา"));
+            // 🌟 เช็คด้วยว่ารถถูกลบไปแล้วหรือยัง
+            if (car == null || car.IsDeleted) 
+                return NotFound(ApiResponse<string>.Fail("ไม่พบรถที่คุณค้นหา หรือรถถูกลบไปแล้ว"));
+                
             var result = _mapper.Map<CarDto>(car);
-
             return Ok(ApiResponse<CarDto>.Success(result, "สำเร็จ"));
         }
 

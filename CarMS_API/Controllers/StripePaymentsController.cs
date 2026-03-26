@@ -134,9 +134,12 @@ namespace CarMS_API.Controllers
             return Ok();
         }
 
+
         [HttpPost("refund")]
-        public async Task<IActionResult> RefundPayment([FromBody] string transactionRef)
+        public async Task<IActionResult> RefundPayment([FromBody] RefundRequestDto dto)
         {
+            var transactionRef = dto.TransactionRef;
+            
             var payment = await _paymentRepo.FirstOrDefaultAsync(p => p.TransactionRef == transactionRef);
             if (payment == null || payment.PaymentStatus != SD.Payment_Paid)
                 return BadRequest("ไม่พบรายการชำระเงิน หรือชำระเงินยังไม่สำเร็จ");
@@ -159,7 +162,7 @@ namespace CarMS_API.Controllers
                 }
                 await _BookingRepo.UpdateAsync(booking);
 
-                // ⚡ สั่ง SignalR: แจ้งเตือนลูกค้าว่าคืนเงินแล้ว
+                // ⚡ สั่ง SignalR: แจ้งเตือนลูกค้า
                 if (!string.IsNullOrEmpty(booking.UserId))
                 {
                     await _hubContext.Clients.Group(booking.UserId).SendAsync("ReceiveNotification", new 
@@ -173,6 +176,11 @@ namespace CarMS_API.Controllers
 
             await _paymentRepo.UpdateAsync(payment);
             return Ok("ทำการคืนเงินและยกเลิกการจองเรียบร้อย");
+        }
+
+        public class RefundRequestDto
+        {
+            public string TransactionRef { get; set; }
         }
     }
 }

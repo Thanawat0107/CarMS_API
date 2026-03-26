@@ -40,10 +40,12 @@ namespace CarMS_API.Controllers
         }
 
         [HttpGet("getall")]
-        public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 10)
+        public async Task<IActionResult> GetAll(string? userId, int? sellerId, int pageNumber = 1, int pageSize = 10)
         {
             var (payments, totalCount) = await _paymentRepo.GetAllAsync(
-                include: query => query.Include(q => q.Booking),
+                filter: q => (string.IsNullOrEmpty(userId) || q.Booking.UserId == userId) &&
+                             (!sellerId.HasValue || q.Booking.Car.SellerId == sellerId.Value),
+                include: query => query.Include(q => q.Booking).ThenInclude(b => b.Car),
                 pageNumber: pageNumber,
                 pageSize: pageSize
             );
@@ -179,14 +181,14 @@ namespace CarMS_API.Controllers
                 {
                     await _hubContext.Clients.Group(payment.Booking.Car.Seller.UserId).SendAsync("ReceiveNotification", new 
                     {
-                        Title = "อัปเดตสลิปชำระเงิน 🔄",
+                        Title = "อัปเดตสลิปชำระเงิน",
                         Message = $"ลูกค้าทำการอัปเดตสลิปค่าจองรถ {payment.Booking.Car.Model} กรุณาตรวจสอบอีกครั้ง",
                         BookingId = payment.BookingId
                     });
                 }
             }
 
-            payment.TotalPrice = (decimal)paymentDto.TotalPrice;
+            payment.TotalPrice = paymentDto.TotalPrice;
             payment.PaymentMethod = paymentDto.PaymentMethod;
             payment.TransactionRef = paymentDto.TransactionRef;
             payment.UpdatedAt = DateTime.UtcNow;

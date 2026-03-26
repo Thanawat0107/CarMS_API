@@ -29,11 +29,16 @@ namespace CarMS_API.Controllers
             _hubContext = hubContext;
         }
 
-        // ดึงข้อความแชททั้งหมด (ไม่มีการเปลี่ยนแปลงข้อมูล ไม่ต้องใส่ SignalR)
         [HttpGet("getall")]
-        public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 50)
+        public async Task<IActionResult> GetAll(string userId1, string userId2, int pageNumber = 1, int pageSize = 50)
         {
+            if (string.IsNullOrEmpty(userId1) || string.IsNullOrEmpty(userId2))
+                return BadRequest(ApiResponse<string>.Fail("กรุณาระบุรหัสผู้ใช้งานทั้งสองฝ่าย"));
+
             var (messages, totalCount) = await _chatRepo.GetAllAsync(
+                // 🌟 กรองเอาเฉพาะข้อความที่ A ส่งหา B หรือ B ส่งหา A เท่านั้น!
+                filter: q => (q.SenderId == userId1 && q.ReceiverId == userId2) || 
+                             (q.SenderId == userId2 && q.ReceiverId == userId1),
                 include: q => q.Include(u => u.Sender).Include(u => u.Receiver), 
                 pageNumber: pageNumber,
                 pageSize: pageSize

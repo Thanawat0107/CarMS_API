@@ -1,4 +1,5 @@
 using AutoMapper;
+using CarMS_API.Hubs;
 using CarMS_API.Models;
 using CarMS_API.Models.Dto;
 using CarMS_API.Models.Dto.CreateDto;
@@ -7,6 +8,7 @@ using CarMS_API.Models.Responsts;
 using CarMS_API.Repositorys.IRepositorys;
 using CarMS_API.Utility;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace CarMS_API.Controllers
@@ -18,18 +20,22 @@ namespace CarMS_API.Controllers
         private readonly IRepository<Loan> _loanRepo;
         private readonly IRepository<Car> _carRepo;
         private readonly IMapper _mapper;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
         public LoansController(
             IRepository<Loan> loanRepo,
             IRepository<Car> carRepo,
-            IMapper mapper)
+            IMapper mapper,
+            IHubContext<NotificationHub> hubContext)
+
         {
             _loanRepo = loanRepo;
             _carRepo = carRepo;
             _mapper = mapper;
+            _hubContext = hubContext;
+
         }
 
-        // 🌟 ดึงข้อมูลสินเชื่อ (รองรับการกรองด้วย carId หรือ userId ได้)
         [HttpGet("getall")]
         public async Task<IActionResult> GetAll(int? carId, string? userId, int pageNumber = 1, int pageSize = 10)
         {
@@ -41,7 +47,6 @@ namespace CarMS_API.Controllers
                 pageSize: pageSize
             );
 
-            // เรียงลำดับคำขอใหม่ล่าสุดขึ้นก่อน
             var sortedLoans = loans.OrderByDescending(l => l.CreatedAt).ToList();
             var result = _mapper.Map<IEnumerable<LoanDto>>(sortedLoans);
 
@@ -65,14 +70,13 @@ namespace CarMS_API.Controllers
             return Ok(ApiResponse<LoanDto>.Success(result, "สำเร็จ"));
         }
 
-        // ลูกค้าส่งฟอร์มขอสินเชื่อ
         [HttpPost("create")]
         public async Task<IActionResult> Create([FromBody] LoanCreateDto loanDto)
         {
-            var car = await _carRepo.GetByIdAsync(loanDto.CarId);
+            // Include ข้อมูลผู้ขายและยี่ห้อรถมาเพื่อใช้ในการแจ้งเตือน
+            var car = await _carRepo.GetByIdAsync(loanDto.CarId, q => q.Include(c => c.Seller).Include(c => c.Brand));
             if (car == null) return NotFound(ApiResponse<string>.Fail("ไม่พบรถยนต์ที่คุณต้องการขอสินเชื่อ"));
 
-            // 🌟 ป้องกันการสแปม: เช็คว่าเคยยื่นขอไปแล้วและสถานะยัง Pending อยู่หรือไม่
             var existingLoan = await _loanRepo.FirstOrDefaultAsync(l => 
                 l.UserId == loanDto.UserId && 
                 l.CarId == loanDto.CarId &&
@@ -88,21 +92,45 @@ namespace CarMS_API.Controllers
             var created = await _loanRepo.AddAsync(loan);
             var result = _mapper.Map<LoanDto>(created);
 
+            // ⚡ สั่ง SignalR: ยิงแจ้งเตือนไปหา "ผู้ขาย (Seller.UserId)"
+            if (car.Seller != null && !string.IsNullOrEmpty(car.Seller.UserId))
+            {
+                var notificationMessage = new 
+                {
+                    Title = "ลูกค้าขอประเมินสินเชื่อ! 💸",
+                    Message = $"รถ {car.Brand?.Name} {car.Model} มีผู้สนใจจัดไฟแนนซ์ (ดาวน์ {loan.DownPayment:N0} บาท) โปรดตรวจสอบข้อมูล",
+                    LoanId = created.Id
+                };
+                await _hubContext.Clients.Group(car.Seller.UserId).SendAsync("ReceiveNotification", notificationMessage);
+            }
+
             return Ok(ApiResponse<LoanDto>.Success(result, "ส่งคำขอประเมินสินเชื่อเบื้องต้นเรียบร้อยแล้ว ผู้ขายจะติดต่อกลับในภายหลัง"));
         }
 
-        // ผู้ขายหรือ Admin อัปเดตสถานะ (เช่น ติดต่อลูกค้าแล้ว หรือ ถูกปฏิเสธ)
         [HttpPut("update-status/{loanId}")]
         public async Task<IActionResult> UpdateStatus(int loanId, [FromBody] LoanUpdateDto updateDto)
         {
-            var loan = await _loanRepo.GetByIdAsync(loanId);
+            // Include ข้อมูลรถมาเพื่อบอกลูกค้าว่าอัปเดตของรถคันไหน
+            var loan = await _loanRepo.GetByIdAsync(loanId, q => q.Include(l => l.Car));
             if (loan == null) return NotFound(ApiResponse<string>.Fail("ไม่พบคำขอสินเชื่อที่ต้องการแก้ไข"));
 
-            loan.LoanStatus = updateDto.LoanStatus; // เช่น SD.Loan_Contacted หรือ SD.Loan_Rejected
-            
+            loan.LoanStatus = updateDto.LoanStatus; 
             await _loanRepo.UpdateAsync(loan);
             
             var result = _mapper.Map<LoanDto>(loan);
+
+            // ⚡ สั่ง SignalR: ยิงแจ้งเตือนไปหา "ลูกค้า (UserId)"
+            if (!string.IsNullOrEmpty(loan.UserId))
+            {
+                var notificationMessage = new 
+                {
+                    Title = "อัปเดตคำขอสินเชื่อของคุณ 📋",
+                    Message = $"คำขอสินเชื่อรถ {loan.Car?.Model} ถูกเปลี่ยนสถานะเป็น: {loan.LoanStatus}",
+                    LoanId = loan.Id
+                };
+                await _hubContext.Clients.Group(loan.UserId).SendAsync("ReceiveNotification", notificationMessage);
+            }
+
             return Ok(ApiResponse<LoanDto>.Success(result, "อัปเดตสถานะคำขอสินเชื่อเรียบร้อย"));
         }
 

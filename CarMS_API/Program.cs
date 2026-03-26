@@ -103,6 +103,9 @@ builder.Services.AddHostedService<BookingExpiryService>();
 // CORS
 builder.Services.AddCors();
 
+// 🌟 จุดที่ 1: เพิ่ม Service ของ SignalR (ใส่ไว้ก่อน builder.Build())
+builder.Services.AddSignalR();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -146,6 +149,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// 🌟 จุดที่ 2: แมปเส้นทาง (Endpoint) สำหรับให้ Frontend ยิงเข้ามาเชื่อมต่อ
+app.MapHub<CarMS_API.Hubs.ChatHub>("/chatHub");
+app.MapHub<CarMS_API.Hubs.NotificationHub>("/notificationHub");
 
 using (var scope = app.Services.CreateScope())
 {

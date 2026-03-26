@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CarMS_API.Hubs;
 using CarMS_API.Models;
 using CarMS_API.Models.Dto;
 using CarMS_API.Models.Dto.CreateDto;
@@ -9,6 +10,7 @@ using CarMS_API.Repositorys.IRepositorys;
 using CarMS_API.Services.IServices;
 using CarMS_API.Utility;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace CarMS_API.Controllers
@@ -20,18 +22,21 @@ namespace CarMS_API.Controllers
         private readonly IRepository<Payment> _paymentRepo;
         private readonly IRepository<Booking> _BookingRepo;
         private readonly IMapper _mapper;
-        private readonly IFileUpload _fileUpload; // 🌟 เพิ่ม FileUpload
+        private readonly IFileUpload _fileUpload;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
         public PaymentsController(
             IRepository<Payment> paymentRepo,
             IRepository<Booking> BookingRepo,
             IMapper mapper,
-            IFileUpload fileUpload) // 🌟 Inject เข้ามา
+            IFileUpload fileUpload,
+            IHubContext<NotificationHub> hubContext)
         {
             _BookingRepo = BookingRepo;
             _paymentRepo = paymentRepo;
             _mapper = mapper;
             _fileUpload = fileUpload;
+            _hubContext = hubContext;
         }
 
         [HttpGet("getall")]
@@ -42,41 +47,28 @@ namespace CarMS_API.Controllers
                 pageNumber: pageNumber,
                 pageSize: pageSize
             );
-
             var result = _mapper.Map<IEnumerable<PaymentDto>>(payments);
-
-            var meta = new PaginationMeta
-            {
-                TotalCount = totalCount,
-                PageNumber = pageNumber,
-                PageSize = pageSize
-            };
-
+            var meta = new PaginationMeta { TotalCount = totalCount, PageNumber = pageNumber, PageSize = pageSize };
             return Ok(ApiResponse<IEnumerable<PaymentDto>>.Success(result, "โหลดรายการชำระเงินสำเร็จ", meta));
         }
 
         [HttpGet("getbyid/{paymentId}")]
         public async Task<IActionResult> GetById(int paymentId)
         {
-            var payment = await _paymentRepo.GetByIdAsync(paymentId, q => q
-            .Include(p => p.Booking)
-            .ThenInclude(r => r.User));
-
+            var payment = await _paymentRepo.GetByIdAsync(paymentId, q => q.Include(p => p.Booking).ThenInclude(r => r.User));
             if (payment == null) return NotFound(ApiResponse<string>.Fail("ไม่พบชำระเงินที่คุณค้นหา"));
-            var result = _mapper.Map<PaymentDto>(payment);
-
-            return Ok(ApiResponse<PaymentDto>.Success(result, "สำเร็จ"));
+            return Ok(ApiResponse<PaymentDto>.Success(_mapper.Map<PaymentDto>(payment), "สำเร็จ"));
         }
 
-        // การจ่ายแบบ Manual (อัปโหลดสลิป)
         [HttpPost("create")]
-        public async Task<IActionResult> Create([FromForm] PaymentCreateDto paymentDto) // 🌟 เปลี่ยนเป็น FromForm เพื่อรับไฟล์สลิป
+        public async Task<IActionResult> Create([FromForm] PaymentCreateDto paymentDto) 
         {
             var allowedMethods = new[] { SD.PaymentMethod_QR, SD.PaymentMethod_PromptPay, SD.PaymentMethod_BankTransfer };
             if (!allowedMethods.Contains(paymentDto.PaymentMethod))
                 return BadRequest(ApiResponse<string>.Fail("ช่องทางการชำระเงินไม่ถูกต้อง"));
 
-            var Booking = await _BookingRepo.GetByIdAsync(paymentDto.BookingId, r => r.Include(r => r.Car));
+            // 🌟 Include Seller มาเพื่อแจ้งเตือน
+            var Booking = await _BookingRepo.GetByIdAsync(paymentDto.BookingId, r => r.Include(b => b.Car).ThenInclude(c => c.Seller));
             if (Booking == null || Booking.BookingStatus != SD.Booking_Pending)
                 return BadRequest(ApiResponse<string>.Fail("ไม่พบการจอง หรือสถานะไม่สามารถชำระเงินได้"));
 
@@ -90,7 +82,6 @@ namespace CarMS_API.Controllers
             if (existingPayment != null)
                 return BadRequest(ApiResponse<string>.Fail("มีการชำระเงิน หรือมีสลิปที่รอตรวจสอบสำหรับการจองนี้แล้ว"));
 
-            // 🌟 แก้ไข: เทียบราคากับ BookingPrice (ค่าจอง) ไม่ใช่ราคาเต็มรถ
             var expectedPrice = Booking.Car.BookingPrice;
             if (paymentDto.TotalPrice != expectedPrice)
                 return BadRequest(ApiResponse<string>.Fail($"ยอดเงินที่ต้องชำระ (ค่าจอง) คือ {expectedPrice} บาท"));
@@ -99,16 +90,26 @@ namespace CarMS_API.Controllers
             payment.CreatedAt = DateTime.UtcNow;
             payment.UpdatedAt = DateTime.UtcNow;
 
-            // 🌟 จัดการอัปโหลดไฟล์สลิป
             if (paymentDto.SlipImage != null)
             {
                 payment.SlipImageUrl = await _fileUpload.UploadFile(paymentDto.SlipImage, SD.ImgPaymentPath);
-                payment.PaymentStatus = SD.Payment_Verifying; // มีสลิปแล้ว ให้สถานะเป็นรอตรวจสอบ
-                Booking.BookingStatus = SD.Booking_PendingPayment; // อัปเดตสถานะการจอง
+                payment.PaymentStatus = SD.Payment_Verifying; 
+                Booking.BookingStatus = SD.Booking_PendingPayment; 
+
+                // ⚡ สั่ง SignalR: แจ้งเตือน "ผู้ขาย" ว่ามีคนแนบสลิปมาให้ตรวจ
+                if (Booking.Car?.Seller != null && !string.IsNullOrEmpty(Booking.Car.Seller.UserId))
+                {
+                    await _hubContext.Clients.Group(Booking.Car.Seller.UserId).SendAsync("ReceiveNotification", new 
+                    {
+                        Title = "แนบสลิปชำระเงินใหม่",
+                        Message = $"มีลูกค้าแนบสลิปค่าจองรถ {Booking.Car.Model} กรุณาตรวจสอบยอดเงิน",
+                        BookingId = Booking.Id
+                    });
+                }
             }
             else
             {
-                payment.PaymentStatus = SD.Payment_Pending; // ถ้ายังไม่แนบสลิป ก็ให้สถานะรอจ่ายไปก่อน
+                payment.PaymentStatus = SD.Payment_Pending; 
             }
 
             Booking.UpdatedAt = DateTime.UtcNow;
@@ -120,47 +121,69 @@ namespace CarMS_API.Controllers
             return Ok(ApiResponse<PaymentDto>.Success(result, "สร้างรายการชำระเงินสำเร็จ"));
         }
 
-        // สำหรับ Admin หรือ Seller กด "ยืนยันว่าสลิปถูกต้อง"
         [HttpPost("confirm/{paymentId}")]
         public async Task<IActionResult> ConfirmPayment(int paymentId)
         {
-            var payment = await _paymentRepo.GetByIdAsync(paymentId, q => q.Include(p => p.Booking));
+            // 🌟 Include User มาเพื่อแจ้งเตือน
+            var payment = await _paymentRepo.GetByIdAsync(paymentId, q => q.Include(p => p.Booking).ThenInclude(b => b.User).Include(p => p.Booking.Car));
             if (payment == null) return NotFound(ApiResponse<string>.Fail("ไม่พบรายการชำระเงิน"));
 
             if (payment.PaymentStatus == SD.Payment_Paid)
                 return BadRequest(ApiResponse<string>.Fail("รายการนี้ถูกชำระเงินแล้ว"));
 
-            payment.PaymentStatus = SD.Payment_Paid; // เปลี่ยนเป็น Paid
+            payment.PaymentStatus = SD.Payment_Paid; 
             payment.PaidAt = DateTime.UtcNow;
             payment.UpdatedAt = DateTime.UtcNow;
 
-            payment.Booking.BookingStatus = SD.Booking_Confirmed; // เปลี่ยนสถานะจองเป็น Confirmed
+            payment.Booking.BookingStatus = SD.Booking_Confirmed; 
             payment.Booking.UpdatedAt = DateTime.UtcNow;
             await _BookingRepo.UpdateAsync(payment.Booking);
 
             await _paymentRepo.UpdateAsync(payment);
+
+            // ⚡ สั่ง SignalR: แจ้งเตือน "ลูกค้า" ว่าสลิปผ่านแล้ว
+            if (!string.IsNullOrEmpty(payment.Booking?.UserId))
+            {
+                await _hubContext.Clients.Group(payment.Booking.UserId).SendAsync("ReceiveNotification", new 
+                {
+                    Title = "สลิปได้รับการยืนยัน!",
+                    Message = $"สลิปชำระค่าจองรถ {payment.Booking.Car?.Model} ของคุณได้รับการอนุมัติแล้ว",
+                    BookingId = payment.BookingId
+                });
+            }
+
             return Ok(ApiResponse<string>.Success("ยืนยันการชำระเงินสำเร็จ"));
         }
 
-        // กรณีลูกค้าอัปโหลดสลิปผิด แล้วอยากอัปเดตใหม่
         [HttpPut("update/{paymentId}")]
         public async Task<IActionResult> Update([FromForm] PaymentUpdateDto paymentDto, int paymentId)
         {
-            var payment = await _paymentRepo.GetByIdAsync(paymentId);
+            // 🌟 Include ไปถึง Seller
+            var payment = await _paymentRepo.GetByIdAsync(paymentId, q => q.Include(p => p.Booking).ThenInclude(b => b.Car).ThenInclude(c => c.Seller));
             if (payment == null) return NotFound(ApiResponse<string>.Fail("ไม่พบรายการชำระเงิน"));
 
             if (payment.PaymentStatus == SD.Payment_Paid)
                 return BadRequest(ApiResponse<string>.Fail("ไม่สามารถแก้ไขรายการที่ชำระเงินแล้วได้"));
 
-            // 🌟 ถ้ามีการส่งสลิปมาใหม่
             if (paymentDto.SlipImage != null)
             {
                 if (!string.IsNullOrEmpty(payment.SlipImageUrl))
                 {
-                    _fileUpload.DeleteFile(payment.SlipImageUrl); // ลบสลิปเก่าทิ้ง
+                    _fileUpload.DeleteFile(payment.SlipImageUrl); 
                 }
                 payment.SlipImageUrl = await _fileUpload.UploadFile(paymentDto.SlipImage, SD.ImgPaymentPath);
-                payment.PaymentStatus = SD.Payment_Verifying; // กลับไปสถานะรอตรวจสอบใหม่
+                payment.PaymentStatus = SD.Payment_Verifying; 
+
+                // ⚡ สั่ง SignalR: แจ้งเตือน "ผู้ขาย" ว่าลูกค้าแก้สลิปใหม่
+                if (payment.Booking?.Car?.Seller != null && !string.IsNullOrEmpty(payment.Booking.Car.Seller.UserId))
+                {
+                    await _hubContext.Clients.Group(payment.Booking.Car.Seller.UserId).SendAsync("ReceiveNotification", new 
+                    {
+                        Title = "อัปเดตสลิปชำระเงิน 🔄",
+                        Message = $"ลูกค้าทำการอัปเดตสลิปค่าจองรถ {payment.Booking.Car.Model} กรุณาตรวจสอบอีกครั้ง",
+                        BookingId = payment.BookingId
+                    });
+                }
             }
 
             payment.TotalPrice = (decimal)paymentDto.TotalPrice;

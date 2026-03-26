@@ -65,17 +65,13 @@ namespace CarMS_API.Models.Mapper
             CreateMap<Payment, PaymentCreateDto>().ReverseMap();
             CreateMap<Payment, PaymentUpdateDto>().ReverseMap();
 
-            // แมปสำหรับการดึงข้อความแชทมาแสดง (AutoMapper จะแมป Sender/Receiver ไปหา UserDto)
-            CreateMap<ChatMessage, ChatMessageDto>()
-                .ForMember(dest => dest.Sender, opt => opt.MapFrom(src => src.Sender))
-                .ForMember(dest => dest.Receiver, opt => opt.MapFrom(src => src.Receiver))
-                .ReverseMap();
+            // แมปสำหรับการดึงข้อความแชทมาแสดง
+            CreateMap<ChatMessage, ChatMessageDto>().ReverseMap();
             // แมปสำหรับการรับค่าเพื่อบันทึกลง Database
             CreateMap<ChatMessageCreateDto, ChatMessage>();
 
             CreateMap<Review, ReviewDto>()
                 .ForMember(dest => dest.User, opt => opt.MapFrom(src => src.User))
-                .ForMember(dest => dest.Seller, opt => opt.MapFrom(src => src.Seller))
                 .ReverseMap();
             CreateMap<ReviewCreateDto, Review>();
             CreateMap<ReviewUpdateDto, Review>();

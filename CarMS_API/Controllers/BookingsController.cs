@@ -82,7 +82,7 @@ namespace CarMS_API.Controllers
             await _carRepo.UpdateAsync(car);
 
             var created = await _BookingRepo.AddAsync(Booking);
-            var result = _mapper.Map<BookingCreateDto>(created);
+            var result = _mapper.Map<BookingDto>(created);
 
             // ⚡ 1. แจ้งเตือนคนขาย (ส่วนตัว)
             if (car.Seller != null && !string.IsNullOrEmpty(car.Seller.UserId))
@@ -103,7 +103,7 @@ namespace CarMS_API.Controllers
                 NewStatus = SD.Status_Booked
             });
 
-            return Ok(ApiResponse<BookingCreateDto>.Success(result, "จองรถสำเร็จ กรุณาชำระเงินภายใน 24 ชั่วโมง"));
+            return Ok(ApiResponse<BookingDto>.Success(result, "จองรถสำเร็จ กรุณาชำระเงินภายใน 24 ชั่วโมง"));
         }
 
         [HttpPut("cancel/{BookingId}")]

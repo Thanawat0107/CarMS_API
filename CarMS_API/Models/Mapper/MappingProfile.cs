@@ -41,6 +41,8 @@ namespace CarMS_API.Models.Mapper
             CreateMap<Seller, SellerDto>()
            .ForMember(dest => dest.User, opt => opt.MapFrom(src => src.User)).ReverseMap();
             CreateMap<Seller, SellerCreateDto>().ReverseMap();
+            CreateMap<SellerUpdateDto, Seller>()
+                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 
             CreateMap<CarMaintenance, CarMaintenanceCreateDto>().ReverseMap();
             CreateMap<CarMaintenance, CarMaintenanceDto>()

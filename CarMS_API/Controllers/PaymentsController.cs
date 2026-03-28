@@ -71,7 +71,7 @@ namespace CarMS_API.Controllers
 
             // 🌟 Include Seller มาเพื่อแจ้งเตือน
             var Booking = await _BookingRepo.GetByIdAsync(paymentDto.BookingId, r => r.Include(b => b.Car).ThenInclude(c => c.Seller));
-            if (Booking == null || Booking.BookingStatus != SD.Booking_Pending)
+            if (Booking == null || (Booking.BookingStatus != SD.Booking_Pending && Booking.BookingStatus != SD.Booking_PendingPayment))
                 return BadRequest(ApiResponse<string>.Fail("ไม่พบการจอง หรือสถานะไม่สามารถชำระเงินได้"));
 
             if (Booking.ExpiryAt < DateTime.UtcNow)

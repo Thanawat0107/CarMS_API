@@ -119,21 +119,21 @@ var app = builder.Build();
     app.UseSwaggerUI();
 //}
 
-app.UseCors(opt =>
-{
-   opt.AllowAnyHeader()
-       .AllowAnyMethod()
-       .AllowCredentials()
-       .WithOrigins("http://localhost:5178", "http://localhost:3000");
-});
-
 // app.UseCors(opt =>
 // {
-//     opt.AllowAnyHeader()
-//         .AllowAnyMethod()
-//         .AllowCredentials()
-//         .WithOrigins("http://10.103.0.17", "http://10.103.0.17/cs66/next/s07/wepcar");
+//    opt.AllowAnyHeader()
+//        .AllowAnyMethod()
+//        .AllowCredentials()
+//        .WithOrigins("http://localhost:5178", "http://localhost:3000");
 // });
+
+app.UseCors(opt =>
+{
+    opt.AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials()
+        .WithOrigins("http://10.103.0.17", "http://10.103.0.17/cs66/next/s07/wepcar");
+});
 
 try
 {
@@ -146,7 +146,7 @@ catch (Exception e)
 
 app.UseStaticFiles();
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); // ปิดเพราะใช้ HTTP บน IIS
 
 app.UseAuthentication();
 

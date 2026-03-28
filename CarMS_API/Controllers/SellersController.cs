@@ -55,6 +55,22 @@ namespace CarMS_API.Controllers
             return Ok(ApiResponse<SellerDto>.Success(result, "สำเร็จ"));
         }
 
+        [HttpGet("getbyuserid/{userId}")]
+        public async Task<IActionResult> GetByUserId(string userId)
+        {
+            var (sellers, _) = await _sellerRepo.GetAllAsync(
+                filter: s => s.UserId == userId,
+                include: q => q.Include(q => q.User),
+                pageNumber: 1,
+                pageSize: 1
+            );
+            var seller = sellers.FirstOrDefault();
+            if (seller == null) return NotFound(ApiResponse<string>.Fail("ไม่พบข้อมูลผู้ขายของผู้ใช้นี้"));
+            var result = _mapper.Map<SellerDto>(seller);
+
+            return Ok(ApiResponse<SellerDto>.Success(result, "สำเร็จ"));
+        }
+
         // สำหรับ User ทั่วไปที่ต้องการสมัครเป็นคนขาย
         [HttpPost("create")]
         public async Task<IActionResult> Create([FromBody] SellerCreateDto sellerDto)

@@ -36,16 +36,20 @@ namespace CarMS_API.Controllers
         {
             var Booking = await _BookingRepo.GetByIdAsync(dto.BookingId, r => r.Include(r => r.Car));
 
-            if (Booking == null || Booking.BookingStatus != SD.Booking_Pending)
+            if (Booking == null ||
+                (Booking.BookingStatus != SD.Booking_Pending && Booking.BookingStatus != SD.Booking_PendingPayment))
                 return BadRequest(ApiResponse<string>.Fail("ไม่พบการจอง หรือสถานะการจองไม่ถูกต้อง (อาจหมดอายุหรือจ่ายแล้ว)"));
 
             if (Booking.Car == null)
                 return BadRequest(ApiResponse<string>.Fail("ไม่พบข้อมูลรถยนต์ที่เกี่ยวข้อง"));
 
-            // ล็อกสถานะไม่ให้คนอื่นจองซ้ำระหว่างชำระเงิน
-            Booking.BookingStatus = SD.Booking_PendingPayment;
-            Booking.UpdatedAt = DateTime.UtcNow;
-            await _BookingRepo.UpdateAsync(Booking);
+            // ล็อกสถานะเฉพาะครั้งแรก (ป้องกัน double-call จาก React StrictMode)
+            if (Booking.BookingStatus == SD.Booking_Pending)
+            {
+                Booking.BookingStatus = SD.Booking_PendingPayment;
+                Booking.UpdatedAt = DateTime.UtcNow;
+                await _BookingRepo.UpdateAsync(Booking);
+            }
 
             var amountInCents = (long)(Booking.Car.BookingPrice * 100);
 

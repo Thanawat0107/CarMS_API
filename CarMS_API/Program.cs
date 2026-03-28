@@ -160,9 +160,8 @@ app.MapHub<NotificationHub>("/notificationHub");
 
 using (var scope = app.Services.CreateScope())
 {
-    var services = scope.ServiceProvider;
-    var roleSeeder = new RoleSeeder(services.GetRequiredService<RoleManager<IdentityRole>>());
-    await roleSeeder.SeedRolesAsync();
+    var roleSeeder = scope.ServiceProvider.GetRequiredService<RoleSeeder>();
+    await roleSeeder.SeedRolesAndUsersAsync();
 }
 
 app.Run();

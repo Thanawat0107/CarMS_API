@@ -64,8 +64,6 @@ namespace CarMS_API.Repositorys
                 if (!result.Succeeded)
                     throw new Exception(string.Join("; ", result.Errors.Select(e => e.Description)));
 
-                await _roleSeeder.SeedRolesAsync();
-
                 string userRole = string.IsNullOrEmpty(model.Role) ? SD.Role_Buyer : model.Role.ToLower();
                 string selectedRole = SD.Role_Buyer;
 

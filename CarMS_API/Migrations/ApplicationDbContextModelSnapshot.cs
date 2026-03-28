@@ -139,7 +139,7 @@ namespace CarMS_API.Migrations
                         .IsUnique()
                         .HasFilter("[BookingStatus] = 'Booking_Pending'");
 
-                    b.ToTable("Bookings", (string)null);
+                    b.ToTable("Bookings");
                 });
 
             modelBuilder.Entity("CarMS_API.Models.Brand", b =>
@@ -166,7 +166,7 @@ namespace CarMS_API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Brands", (string)null);
+                    b.ToTable("Brands");
                 });
 
             modelBuilder.Entity("CarMS_API.Models.Car", b =>
@@ -278,7 +278,7 @@ namespace CarMS_API.Migrations
 
                     b.HasIndex("SellerId");
 
-                    b.ToTable("Cars", (string)null);
+                    b.ToTable("Cars");
                 });
 
             modelBuilder.Entity("CarMS_API.Models.CarMaintenance", b =>
@@ -316,7 +316,7 @@ namespace CarMS_API.Migrations
 
                     b.HasIndex("CarId");
 
-                    b.ToTable("CarMaintenances", (string)null);
+                    b.ToTable("CarMaintenances");
                 });
 
             modelBuilder.Entity("CarMS_API.Models.ChatMessage", b =>
@@ -349,7 +349,7 @@ namespace CarMS_API.Migrations
 
                     b.HasIndex("SenderId");
 
-                    b.ToTable("ChatMessages", (string)null);
+                    b.ToTable("ChatMessages");
                 });
 
             modelBuilder.Entity("CarMS_API.Models.Loan", b =>
@@ -389,7 +389,7 @@ namespace CarMS_API.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Loans", (string)null);
+                    b.ToTable("Loans");
                 });
 
             modelBuilder.Entity("CarMS_API.Models.Payment", b =>
@@ -435,7 +435,7 @@ namespace CarMS_API.Migrations
 
                     b.HasIndex("BookingId");
 
-                    b.ToTable("Payments", (string)null);
+                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("CarMS_API.Models.Review", b =>
@@ -468,7 +468,7 @@ namespace CarMS_API.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Reviews", (string)null);
+                    b.ToTable("Reviews");
                 });
 
             modelBuilder.Entity("CarMS_API.Models.Seller", b =>
@@ -497,7 +497,7 @@ namespace CarMS_API.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Sellers", (string)null);
+                    b.ToTable("Sellers");
                 });
 
             modelBuilder.Entity("CarMS_API.Models.TestDrive", b =>
@@ -531,7 +531,7 @@ namespace CarMS_API.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("TestDrives", (string)null);
+                    b.ToTable("TestDrives");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

@@ -101,6 +101,9 @@ builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddHostedService<BookingExpiryService>();
 
+// Stripe
+Stripe.StripeConfiguration.ApiKey = builder.Configuration["StripeSettings:SecretKey"];
+
 // CORS
 builder.Services.AddCors();
 

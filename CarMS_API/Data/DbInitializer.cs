@@ -9,24 +9,54 @@ namespace CarMS_API.Data
         public static void InitDb(WebApplication app)
         {
             using var scope = app.Services.CreateScope();
+            var context = scope.ServiceProvider.GetService<ApplicationDbContext>();
 
-            SeedData(scope.ServiceProvider.GetService<ApplicationDbContext>());
+            if (context == null) return;
+
+            context.Database.Migrate();
+            SeedData(context);
         }
 
         private static void SeedData(ApplicationDbContext context)
         {
+            // 0. สั่ง Migration ก่อนเสมอ
             context.Database.Migrate();
 
+            // 1. SEED BRANDS (ชั้นที่ 1)
+            // ตรวจสอบว่ามี Brand หรือยัง ถ้าไม่มีให้สร้างใหม่
+            if (!context.Brands.Any())
+            {
+                var brands = new List<Brand>
+                {
+                    // ใส่ค่าให้ CarImages, IsUsed, IsDeleted ตามที่ Model/DB ต้องการ
+                    new Brand { Name = "Honda", CarImages = "", IsUsed = true, IsDeleted = false },
+                    new Brand { Name = "Ford", CarImages = "", IsUsed = true, IsDeleted = false },
+                    new Brand { Name = "Tesla", CarImages = "", IsUsed = true, IsDeleted = false },
+                    new Brand { Name = "Toyota", CarImages = "", IsUsed = true, IsDeleted = false },
+                    new Brand { Name = "BMW", CarImages = "", IsUsed = true, IsDeleted = false },
+                    new Brand { Name = "Mitsubishi", CarImages = "", IsUsed = true, IsDeleted = false }
+                };
+                context.Brands.AddRange(brands);
+                context.SaveChanges(); // บันทึกเพื่อให้ได้ ID ทันที
+                Console.WriteLine("--> Brands seeded successfully.");
+            }
+
+            // 2. CHECK CARS (ป้องกันข้อมูลซ้ำ)
             if (context.Cars.Any())
             {
-                Console.WriteLine("Already have data - no need to seed");
+                Console.WriteLine("--> Already have car data - skipping car seed.");
                 return;
             }
 
+            // 3. GET BRAND MAP (ดึง ID มาเก็บใน Dictionary เพื่อความเร็วและลด Error)
+            var brandMap = context.Brands.ToDictionary(b => b.Name, b => b.Id);
+
+            // 4. SEED CARS (ชั้นที่ 2)
             var cars = new List<Car>
             {
                 new Car
                 {
+                    BrandId = brandMap["Honda"], // แทรก BrandId
                     CarRegistrationNumber = "กข-1234 กทม",
                     CarIdentificationNumber = "1HGCM82633A004352",
                     EngineNumber = "ENG12345678",
@@ -55,6 +85,7 @@ namespace CarMS_API.Data
                 },
                 new Car
                 {
+                    BrandId = brandMap["Ford"],
                     CarRegistrationNumber = "งจ-5678 เชียงใหม่",
                     CarIdentificationNumber = "1FTRX18W1XNB12345",
                     EngineNumber = "ENG23456789",
@@ -83,6 +114,7 @@ namespace CarMS_API.Data
                 },
                 new Car
                 {
+                    BrandId = brandMap["Tesla"],
                     CarRegistrationNumber = "ขย-9087 ภูเก็ต",
                     CarIdentificationNumber = "5YJ3E1EA7KF317235",
                     EngineNumber = "ENG34567890",
@@ -111,6 +143,7 @@ namespace CarMS_API.Data
                 },
                 new Car
                 {
+                    BrandId = brandMap["Honda"],
                     CarRegistrationNumber = "ทล-1111 ขอนแก่น",
                     CarIdentificationNumber = "1HGCR2F3XFA027534",
                     EngineNumber = "ENG45678901",
@@ -139,6 +172,7 @@ namespace CarMS_API.Data
                 },
                 new Car
                 {
+                    BrandId = brandMap["Toyota"],
                     CarRegistrationNumber = "ศร-2222 ระยอง",
                     CarIdentificationNumber = "JTNB11HK8K3001234",
                     EngineNumber = "ENG56789012",
@@ -167,6 +201,7 @@ namespace CarMS_API.Data
                 },
                 new Car
                 {
+                    BrandId = brandMap["BMW"],
                     CarRegistrationNumber = "นห-3333 นครราชสีมา",
                     CarIdentificationNumber = "WBAXH5C51CDW12345",
                     EngineNumber = "ENG67890123",
@@ -195,6 +230,7 @@ namespace CarMS_API.Data
                 },
                 new Car
                 {
+                    BrandId = brandMap["Toyota"],
                     CarRegistrationNumber = "อค-4444 ลำปาง",
                     CarIdentificationNumber = "JTDKBRFU9J3054321",
                     EngineNumber = "ENG78901234",
@@ -223,6 +259,7 @@ namespace CarMS_API.Data
                 },
                 new Car
                 {
+                    BrandId = brandMap["Ford"],
                     CarRegistrationNumber = "ภก-5555 สงขลา",
                     CarIdentificationNumber = "1FA6P8CF4H5301234",
                     EngineNumber = "ENG89012345",
@@ -251,6 +288,7 @@ namespace CarMS_API.Data
                 },
                 new Car
                 {
+                    BrandId = brandMap["Toyota"],
                     CarRegistrationNumber = "ชข-6666 อุดรธานี",
                     CarIdentificationNumber = "JTFHX02P3V0001234",
                     EngineNumber = "ENG90123456",
@@ -279,6 +317,7 @@ namespace CarMS_API.Data
                 },
                 new Car
                 {
+                    BrandId = brandMap["Mitsubishi"],
                     CarRegistrationNumber = "พท-7777 นครปฐม",
                     CarIdentificationNumber = "JA4J24A59NZ012345",
                     EngineNumber = "ENG01234567",
@@ -305,16 +344,24 @@ namespace CarMS_API.Data
                     ApprovalRemark = "Approved - modern PHEV",
                     ApprovedAt = new DateTime(2024, 5, 2)
                 }
-            };
+                };
 
+            // 5. SAVE CHANGES WITH DETAILED ERROR LOGGING
             try
             {
-                context.AddRange(cars);
+                context.Cars.AddRange(cars);
                 context.SaveChanges();
+                Console.WriteLine("--> Cars seeded successfully.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Seed Error]: {ex.Message}");
+                Console.WriteLine("****************************************");
+                Console.WriteLine($"[CRITICAL ERROR]: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"[DB DETAIL]: {ex.InnerException.Message}");
+                }
+                Console.WriteLine("****************************************");
             }
         }
     }

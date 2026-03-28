@@ -1,5 +1,6 @@
 ﻿using CarMS_API.Models;
 using CarMS_API.Repositorys.IRepositorys;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Stripe;
 using Microsoft.EntityFrameworkCore;
@@ -13,23 +14,20 @@ namespace CarMS_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class StripePaymentsController : ControllerBase
     {
         private readonly IRepository<Booking> _BookingRepo;
         private readonly IRepository<Payment> _paymentRepo;
-        private readonly string _webhookSecret;
         private readonly IHubContext<NotificationHub> _hubContext;
 
         public StripePaymentsController(
             IRepository<Booking> BookingRepo,
-             IRepository<Payment> paymentRepo,
-            IConfiguration config,
+            IRepository<Payment> paymentRepo,
             IHubContext<NotificationHub> hubContext)
-
         {
             _BookingRepo = BookingRepo;
             _paymentRepo = paymentRepo;
-            _webhookSecret = config["StripeSettings:WebhookSecret"];
             _hubContext = hubContext;
         }
 
@@ -40,6 +38,14 @@ namespace CarMS_API.Controllers
 
             if (Booking == null || Booking.BookingStatus != SD.Booking_Pending)
                 return BadRequest(ApiResponse<string>.Fail("ไม่พบการจอง หรือสถานะการจองไม่ถูกต้อง (อาจหมดอายุหรือจ่ายแล้ว)"));
+
+            if (Booking.Car == null)
+                return BadRequest(ApiResponse<string>.Fail("ไม่พบข้อมูลรถยนต์ที่เกี่ยวข้อง"));
+
+            // ล็อกสถานะไม่ให้คนอื่นจองซ้ำระหว่างชำระเงิน
+            Booking.BookingStatus = SD.Booking_PendingPayment;
+            Booking.UpdatedAt = DateTime.UtcNow;
+            await _BookingRepo.UpdateAsync(Booking);
 
             var amountInCents = (long)(Booking.Car.BookingPrice * 100);
 
@@ -62,76 +68,66 @@ namespace CarMS_API.Controllers
             }, "สร้าง Payment Intent สำเร็จ"));
         }
 
-        [HttpPost("webhook")]
-        public async Task<IActionResult> StripeWebhook()
+        [HttpPost("confirm")]
+        public async Task<IActionResult> ConfirmPayment([FromBody] ConfirmDto dto)
         {
-            var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
-            Event stripeEvent;
+            var service = new PaymentIntentService();
+            var intent = await service.GetAsync(dto.PaymentIntentId);
 
-            try { stripeEvent = EventUtility.ConstructEvent(json, Request.Headers["Stripe-Signature"], _webhookSecret); }
-            catch (Exception) { return BadRequest("Invalid webhook signature."); }
+            if (intent == null || intent.Status != "succeeded")
+                return BadRequest(ApiResponse<string>.Fail("การชำระเงินยังไม่สำเร็จ"));
 
-            if (stripeEvent.Type == "payment_intent.succeeded")
+            // idempotency — กันสร้าง Payment ซ้ำ
+            if (await _paymentRepo.FirstOrDefaultAsync(p => p.TransactionRef == intent.Id) != null)
+                return Ok(ApiResponse<string>.Success("ยืนยันแล้ว", "ชำระเงินและยืนยันการจองสำเร็จ"));
+
+            if (intent.Metadata == null || !intent.Metadata.TryGetValue("BookingId", out var bookingIdStr) || !int.TryParse(bookingIdStr, out var bookingId))
+                return BadRequest(ApiResponse<string>.Fail("ไม่พบข้อมูลการจองใน PaymentIntent"));
+
+            var booking = await _BookingRepo.GetByIdAsync(bookingId, r =>
+                r.Include(b => b.User)
+                 .Include(b => b.Car).ThenInclude(c => c.Seller));
+
+            if (booking == null) return BadRequest(ApiResponse<string>.Fail("ไม่พบการจอง"));
+
+            var expectedAmount = (long)(booking.Car.BookingPrice * 100);
+            if (intent.AmountReceived != expectedAmount)
+                return BadRequest(ApiResponse<string>.Fail("ยอดเงินไม่ตรงกัน"));
+
+            booking.BookingStatus = SD.Booking_Confirmed;
+            booking.UpdatedAt = DateTime.UtcNow;
+            await _BookingRepo.UpdateAsync(booking);
+
+            var payment = new Payment
             {
-                var intent = stripeEvent.Data.Object as PaymentIntent;
+                BookingId = booking.Id,
+                PaymentMethod = SD.PaymentMethod_CreditCard,
+                TotalPrice = booking.Car.BookingPrice,
+                PaymentStatus = SD.Payment_Paid,
+                PaidAt = DateTime.UtcNow,
+                TransactionRef = intent.Id,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            await _paymentRepo.AddAsync(payment);
 
-                if (await _paymentRepo.FirstOrDefaultAsync(p => p.TransactionRef == intent.Id) != null)
-                    return Ok();
-
-                if (!intent.Metadata.TryGetValue("BookingId", out var BookingIdStr) || !int.TryParse(BookingIdStr, out var BookingId))
-                    return BadRequest("Invalid or missing BookingId in metadata");
-
-                // 🌟 ดึงข้อมูล User และ Seller มาด้วยเพื่อส่งแจ้งเตือน
-                var Booking = await _BookingRepo.GetByIdAsync(BookingId, r => 
-                    r.Include(b => b.User)
-                     .Include(b => b.Car).ThenInclude(c => c.Seller));
-                     
-                if (Booking == null) return BadRequest("Booking not found");
-
-                var expectedAmount = (long)(Booking.Car.BookingPrice * 100);
-                if (intent.AmountReceived != expectedAmount) return BadRequest("Amount mismatch");
-
-                Booking.BookingStatus = SD.Booking_Confirmed;
-                Booking.UpdatedAt = DateTime.UtcNow;
-                await _BookingRepo.UpdateAsync(Booking);
-
-                var payment = new Payment
+            if (!string.IsNullOrEmpty(booking.UserId))
+                await _hubContext.Clients.Group(booking.UserId).SendAsync("ReceiveNotification", new
                 {
-                    BookingId = Booking.Id,
-                    PaymentMethod = SD.PaymentMethod_CreditCard,
-                    TotalPrice = Booking.Car.BookingPrice, 
-                    PaymentStatus = SD.Payment_Paid, 
-                    PaidAt = DateTime.UtcNow,
-                    TransactionRef = intent.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                await _paymentRepo.AddAsync(payment);
+                    Title = "ชำระเงินสำเร็จ!",
+                    Message = $"ระบบได้รับยอดชำระค่าจองรถ {booking.Car?.Model} ของคุณเรียบร้อยแล้ว",
+                    BookingId = booking.Id
+                });
 
-                // ⚡ สั่ง SignalR: แจ้งเตือน "ลูกค้า" (ว่าจ่ายผ่านแล้ว)
-                if (!string.IsNullOrEmpty(Booking.UserId))
+            if (booking.Car?.Seller != null && !string.IsNullOrEmpty(booking.Car.Seller.UserId))
+                await _hubContext.Clients.Group(booking.Car.Seller.UserId).SendAsync("ReceiveNotification", new
                 {
-                    await _hubContext.Clients.Group(Booking.UserId).SendAsync("ReceiveNotification", new 
-                    {
-                        Title = "ชำระเงินสำเร็จ!",
-                        Message = $"ระบบได้รับยอดชำระค่าจองรถ {Booking.Car?.Model} ของคุณเรียบร้อยแล้ว",
-                        BookingId = Booking.Id
-                    });
-                }
+                    Title = "ได้รับยอดชำระเงินค่าจอง!",
+                    Message = $"ลูกค้าชำระค่าจองรถ {booking.Car.Model} ผ่านบัตรเครดิตเรียบร้อยแล้ว",
+                    BookingId = booking.Id
+                });
 
-                // ⚡ สั่ง SignalR: แจ้งเตือน "ผู้ขาย" (ว่ามีคนจ่ายเงินแล้ว)
-                if (Booking.Car?.Seller != null && !string.IsNullOrEmpty(Booking.Car.Seller.UserId))
-                {
-                    await _hubContext.Clients.Group(Booking.Car.Seller.UserId).SendAsync("ReceiveNotification", new 
-                    {
-                        Title = "ได้รับยอดชำระเงินค่าจอง!",
-                        Message = $"ลูกค้าชำระค่าจองรถ {Booking.Car.Model} ผ่านบัตรเครดิตเรียบร้อยแล้ว",
-                        BookingId = Booking.Id
-                    });
-                }
-            }
-
-            return Ok();
+            return Ok(ApiResponse<string>.Success("ยืนยันสำเร็จ", "ชำระเงินและยืนยันการจองสำเร็จ"));
         }
 
 
@@ -178,9 +174,14 @@ namespace CarMS_API.Controllers
             return Ok("ทำการคืนเงินและยกเลิกการจองเรียบร้อย");
         }
 
+        public class ConfirmDto
+        {
+            public string PaymentIntentId { get; set; } = string.Empty;
+        }
+
         public class RefundRequestDto
         {
-            public string TransactionRef { get; set; }
+            public string TransactionRef { get; set; } = string.Empty;
         }
     }
 }

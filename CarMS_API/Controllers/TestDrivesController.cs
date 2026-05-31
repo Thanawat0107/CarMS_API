@@ -6,6 +6,7 @@ using CarMS_API.Models.Dto;
 using CarMS_API.Models.Responsts;
 using CarMS_API.Repositorys.IRepositorys;
 using CarMS_API.Utility;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CarMS_API.Hubs;
@@ -140,6 +141,63 @@ namespace CarMS_API.Controllers
             if (deleted == null) return NotFound(ApiResponse<string>.Fail($"ไม่พบรายการทดลองขับ ID: {testDriveId}"));
 
             return Ok(ApiResponse<string>.Success("ลบรายการทดลองขับเรียบร้อยแล้ว"));
+        }
+
+        [Authorize(Roles = SD.Role_Admin + "," + SD.Role_Seller)]
+        [HttpPut("update-status/{testDriveId}")]
+        public async Task<IActionResult> UpdateStatus(int testDriveId, [FromBody] TestDriveStatusUpdateDto updateDto)
+        {
+            if (updateDto == null || string.IsNullOrWhiteSpace(updateDto.StatusTestDrive))
+                return BadRequest(ApiResponse<string>.Fail("กรุณาระบุสถานะที่ต้องการอัปเดต"));
+
+            var allowedStatus = new[] { SD.TestDrive_Pending, SD.TestDrive_Confirmed, SD.TestDrive_Cancel };
+            if (!allowedStatus.Contains(updateDto.StatusTestDrive))
+                return BadRequest(ApiResponse<string>.Fail("สถานะไม่ถูกต้อง"));
+
+            var testDrive = await _TestDriveRepo.GetByIdAsync(
+                testDriveId,
+                q => q.Include(t => t.Car).ThenInclude(c => c.Seller).Include(t => t.User)
+            );
+
+            if (testDrive == null)
+                return NotFound(ApiResponse<string>.Fail("ไม่พบรายการทดลองขับที่ต้องการอัปเดตสถานะ"));
+
+            var currentUserId = User.FindFirst("userId")?.Value;
+            var isAdmin = User.IsInRole(SD.Role_Admin);
+
+            if (!isAdmin)
+            {
+                if (string.IsNullOrEmpty(currentUserId))
+                    return Unauthorized(ApiResponse<string>.Fail("ไม่พบข้อมูลผู้ใช้งานใน token"));
+
+                var isOwnerSeller = testDrive.Car?.Seller?.UserId == currentUserId;
+                if (!isOwnerSeller)
+                    return Forbid();
+            }
+
+            testDrive.StatusTestDrive = updateDto.StatusTestDrive;
+            await _TestDriveRepo.UpdateAsync(testDrive);
+
+            var result = _mapper.Map<TestDriveDto>(testDrive);
+
+            if (!string.IsNullOrEmpty(testDrive.UserId))
+            {
+                var statusText = testDrive.StatusTestDrive == SD.TestDrive_Confirmed
+                    ? "ได้รับการยืนยันแล้ว"
+                    : testDrive.StatusTestDrive == SD.TestDrive_Cancel
+                        ? "ถูกยกเลิก"
+                        : "อยู่ระหว่างรอดำเนินการ";
+
+                var notificationMessage = new
+                {
+                    Title = "อัปเดตสถานะคิวทดลองขับ 🔔",
+                    Message = $"นัดหมายทดลองขับรถ {testDrive.Car?.Model} ของคุณ {statusText}",
+                    TestDriveId = testDrive.Id
+                };
+                await _hubContext.Clients.Group(testDrive.UserId).SendAsync("ReceiveNotification", notificationMessage);
+            }
+
+            return Ok(ApiResponse<TestDriveDto>.Success(result, "อัปเดตสถานะนัดหมายเรียบร้อย"));
         }
     }
 }
